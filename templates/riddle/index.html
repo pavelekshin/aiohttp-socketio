@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Socket.io riddle</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+    <script src="/static/js/socketio.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/style/riddle/style.css"/>
+
+    <script>
+        var store = {
+          riddle: null,
+          score: 0,
+        };
+
+        app_pages = {
+            standby:  {},
+            showriddle: {},
+            showresult: {},
+<!--            disconnected: {}-->
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            app = new socketio({
+              store: store,
+              container: "#app",
+              pages: app_pages,
+              url: window.location.origin + window.location.pathname
+            });
+
+            app.addHandler("next", ()=> {
+                app.emit("next")
+                console.log(app)
+                console.log(app.url)
+
+            })
+
+            app.on("connect", null, ()=> {
+                app.go("standby");
+            })
+
+            app.addHandler("recreate", ()=> {
+                app.emit("recreate")
+            })
+
+            app.addHandler("answer", ()=> {
+                user_answer = document.querySelector("textarea#answer").value
+                app.emit("answer", {text: user_answer})
+            })
+
+            app.on("riddle", "#showriddle", (data) => {
+                console.log(data)
+                app.store.riddle = data
+            })
+
+            app.on("result", "#showanswer", (data) => {
+                console.log(data)
+                app.store.riddle = data
+            })
+
+            app.on("disconnect", "#disconnect")
+
+            app.on("over", "#showover", (data) => {
+                console.log(data)
+                app.store.riddle = data
+            })
+
+            app.on("score", null, (data) => {
+                console.log(data)
+                app.store.score = data.value
+            })
+
+            app.go("standby");
+        })
+
+
+    </script>
+
+</head>
+<body>
+
+<main>
+    <div class="container">
+        <section class="screen active card" id="app">
+            Загружаем
+        </section>
+    </div>
+</main>
+
+<template id="standby">
+    <div class="center">
+        <h1>Игра в загадки</h1>
+        <p>Это демонстрационный стенд проекта на основе socket.io по работе с сокетами.</p>
+        <button class="tappable block" onclick="app.run('next')">Начать играть</button>
+    </div>
+</template>
+
+<template id="showriddle">
+    <p class="alert">Ваш счет: {{score}}</p>
+    <p>Загадка {{riddle.number}}</p>
+    <p class="alert info">
+        {{riddle.text}}
+    </p>
+    <p>Ваша версия</p>
+    <textarea id="answer" class="alert info block mb"></textarea>
+    <button class="tappable block" onclick="app.run('answer')">Ответить</button>
+</template>
+
+<template id="showanswer">
+    <p class="alert">Ваш счет: {{score}}</p>
+    <p>Загадка {{riddle.number}}</p>
+    <p class="alert info">
+        {{riddle.text}}
+    </p>
+    <p>Правильный ответ</p>
+    <h1>{{riddle.answer}}</h1>
+    <button class="tappable block" onclick="app.run('next')">Следующий вопрос</button>
+</template>
+
+<template id="showover">
+    <p class="alert">Ваш счет: {{score}}</p>
+    <p>Игра завершена</p>
+    <button class="tappable block" onclick="app.run('recreate')">Начать заново</button>
+</template>
+
+
+<template id="disconnect">
+    <h1>Соединение с сервером потеряно, приложение пытается восстановить связь</h1>
+</template>
+
+
+</body>
+</html>
