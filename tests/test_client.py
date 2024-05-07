@@ -106,13 +106,19 @@ def idtype(val):
     "event, data, expected",
     [
         (
-                "connected", None, "connected_chat"
+                "connected",
+                None,
+                "connected"
         ),
         (
-                "get_rooms", {}, ["lobby", "general", "random"]
+                "get_rooms",
+                {},
+                ["lobby", "general", "random"]
         ),
         (
-                "join", {"name": "test_client", "room": "lobby"}, {'text': 'welcome to lobby'}
+                "join",
+                {"name": "test_client", "room": "lobby"},
+                {'text': 'welcome to lobby'}
         ),
     ],
     ids=idtype
@@ -133,30 +139,45 @@ def riddle():
     "event, data, expected",
     [
         (
-                "connected", None, "connected"
+                "connected",
+                None,
+                "connected"
         ),
         (
-                "next", {}, {"text": riddle().question}
+                "next",
+                {},
+                {"text": riddle().question}
         ),
         (
-                "answer", {"text": riddle().answer},
+                "answer",
+                {"text": riddle().answer},
                 {"riddle": riddle().question, "is_correct": "true", "answer": riddle().answer}
         ),
         (
-                "answer", {"text": "asd"},
+                "answer",
+                {"text": "asd"},
                 {"riddle": riddle().question, "is_correct": "false", "answer": riddle().answer}
         ),
         (
-                "score", {}, {"value": 1}
+                "score",
+                {},
+                {"value": 1}
         ),
         (
-                "recreate", {}, {"text": riddle().question}
+                "recreate",
+                {},
+                {"text": riddle().question}
         )
     ],
     ids=idtype
 )
 async def test_riddle(conn: AsyncClient, event, data, expected):
-    print(EXPECTED_RIDDLE_DATA)
     await conn.emit(event, data=data, namespace="/riddle")
     await conn.sleep(2)
     assert expected in EXPECTED_RIDDLE_DATA
+
+
+@pytest.mark.skip("Not implemented")
+async def test_trivia(conn: AsyncClient, event, data, expected):
+    pass
+    # TODO: need to realise this functionality
