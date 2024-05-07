@@ -74,7 +74,7 @@ class Trivia(socketio.AsyncNamespace):
         else:  # do nothing if we receive only one answer
             pass
 
-    async def on_left_queue(self, sid, data):
+    async def on_release_queue(self, sid, data):
         logger.info(f"Client {sid} send data: {data} on {self.__class__.__qualname__}")
         waiting_room.remove_sid_from_waiting_room(sid)
 

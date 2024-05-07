@@ -79,13 +79,10 @@
         // Обрабатываем нажатие назад
         app.addHandler("back", ()=> {
 
-
             if(app.store.topic.hasOwnProperty("pk")){
-                app.emit("left_queue", {topic_pk: app.store.topic.pk, name: playerName})
+                app.emit("release_queue", {topic_pk: app.store.topic.pk, name: playerName})
             }
-            app.emit("get_topics")
-            <!--  app.go("topics") -->
-
+            setTimeout( () => { app.emit("get_topics") }, 500)
         })
 
         // Клиент выбирает тему
