@@ -15,13 +15,13 @@ _ROOMS = ["lobby", "general", "random"]
 class Chat(socketio.AsyncNamespace):
     async def on_connect(self, sid, environ):
         logger.info(f"Client {sid} connect to {self.__class__.__qualname__}")
-        client_container.get_user(sid)
+        client_container.get_item(sid)
         await self.send_status()
 
     async def on_disconnect(self, sid):
-        client = client_container.get_user(sid)
+        client = client_container.get_item(sid)
         logger.info(f"Client {sid} connection time is : {client.connection_time()}")
-        client_container.del_user(sid)
+        client_container.del_item(sid)
         logger.info(
             f"Client: {sid} disconnected from {self.__class__.__qualname__}, remain clients count: {len(client_container)}")
         await self.send_status()
@@ -38,7 +38,7 @@ class Chat(socketio.AsyncNamespace):
             logger.error(f"Client {sid} username validation error! Entered name: {username}")
             raise ConnectionRefusedError("error", {"error": e.json()})
         room = data.get("room")
-        client = client_container.get_user(sid)
+        client = client_container.get_item(sid)
         client.name = username
         client.room = room
         await self.emit("move", to=sid, data={"room": room})
@@ -50,7 +50,7 @@ class Chat(socketio.AsyncNamespace):
         await self.emit("message", to=sid, data={"text": f"welcome to {room}"})
 
     async def on_leave(self, sid, data):
-        client = client_container.get_user(sid)
+        client = client_container.get_item(sid)
         room = client.room
         username = client.name
         await self.close_room(room=room)
@@ -58,7 +58,7 @@ class Chat(socketio.AsyncNamespace):
         del client.room
 
     async def on_send_message(self, sid, data):
-        client = client_container.get_user(sid)
+        client = client_container.get_item(sid)
         username = client.name
         room = client.room
         text = data.get("text")

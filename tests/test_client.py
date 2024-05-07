@@ -105,10 +105,18 @@ def idtype(val):
 @pytest.mark.parametrize(
     "event, data, expected",
     [
-        ("connected", None, "connected_chat"),
-        ("get_rooms", {}, ["lobby", "general", "random"]),
-        ("join", {"name": "test_client", "room": "lobby"}, {'text': 'welcome to lobby'}),
-    ], ids=idtype)
+        (
+                "connected", None, "connected_chat"
+        ),
+        (
+                "get_rooms", {}, ["lobby", "general", "random"]
+        ),
+        (
+                "join", {"name": "test_client", "room": "lobby"}, {'text': 'welcome to lobby'}
+        ),
+    ],
+    ids=idtype
+)
 async def test_chat(conn: AsyncClient, event, data, expected):
     await conn.emit(event, data=data, namespace="/chat")
     await conn.sleep(2)
@@ -117,24 +125,36 @@ async def test_chat(conn: AsyncClient, event, data, expected):
 
 def riddle():
     riddle = Riddle()
-    print(riddle)
     riddle.get_question()
-    print(riddle)
     return riddle
 
 
 @pytest.mark.parametrize(
     "event, data, expected",
     [
-        ("connected", None, "connected"),
-        ("next", {}, {"text": riddle().question}),
-        ("answer", {"text": riddle().answer}, {"riddle": riddle().question, "is_correct": "true",
-                                               "answer": riddle().answer}),
-        ("answer", {"text": "asd"}, {"riddle": riddle().question, "is_correct": "false",
-                                     "answer": riddle().answer}),
-        ("score", {}, {"value": 1}),
-        ("recreate", {}, {"text": riddle().question})
-    ], ids=idtype)
+        (
+                "connected", None, "connected"
+        ),
+        (
+                "next", {}, {"text": riddle().question}
+        ),
+        (
+                "answer", {"text": riddle().answer},
+                {"riddle": riddle().question, "is_correct": "true", "answer": riddle().answer}
+        ),
+        (
+                "answer", {"text": "asd"},
+                {"riddle": riddle().question, "is_correct": "false", "answer": riddle().answer}
+        ),
+        (
+                "score", {}, {"value": 1}
+        ),
+        (
+                "recreate", {}, {"text": riddle().question}
+        )
+    ],
+    ids=idtype
+)
 async def test_riddle(conn: AsyncClient, event, data, expected):
     print(EXPECTED_RIDDLE_DATA)
     await conn.emit(event, data=data, namespace="/riddle")

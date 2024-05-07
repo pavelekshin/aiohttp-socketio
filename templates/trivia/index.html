@@ -31,84 +31,105 @@
 
 
 
-            app = new socketio({
-              store: store,
-              container: "#app",
-              pages: app_pages,
-              url: window.location.origin + window.location.pathname
-            });
+        app = new socketio({
+          store: store,
+          container: "#app",
+          pages: app_pages,
+          url: window.location.origin + window.location.pathname
+        });
 
-            app.on("connect", null, ()=> {app.emit("get_topics")})
+        app.on("connect", null, ()=> {
+            app.emit("get_topics")
+        })
 
-            Handlebars.registerHelper("incremented", function (index) {
-                return index + 1;
-            });
-
-
-            // Когда загружены темы, переходим на страницу выбора темы
-            app.on("topics", "#topics", (data)=>{app.store.topics=data})
-
-            // Когда игра пришла, обновляем ее
-            app.on("game", null, (data)=>{
-
-                if (app.store.game.question_count && app.store.game.question_count != data.question_count) {
-                   // Если пришел новый вопрос показать сперва ответ, затем обновить вопрос
-                   app.run("feedback", app.store.game.answer)
-                   setTimeout( () => { app.store.game = data; app.go("playing")  }, 3000)
-                } else {
-                   // если нет - сразу показать
-                   app.store.game = data; app.go("playing")
-                }
-
-            })
+        Handlebars.registerHelper("incremented", function (index) {
+            return index + 1;
+        });
 
 
+        // Когда загружены темы, переходим на страницу выбора темы
+        app.on("topics", "#topics", (data)=>{app.store.topics=data})
 
-            app.addHandler("feedback", (data)=> {
-                console.log(data)
-                index = data - 1
-                console.log(data)
-                console.log(`Выделяем правильный ответ ${index}`)
-                option_element = document.querySelectorAll(".questions_option")[index]
-                option_element.classList.add("correct_option")
-            })
-
-            // Обрабатываем нажатие назад
-            app.addHandler("back", ()=> {app.go("topics") } )
-
-            // Клиент выбирает тему
-            app.addHandler("pick_topic", (topic)=> {
-                app.store.topic = topic
-                console.log(app.store.topic)
-                app.go("entering")
-            } )
-
-            // Клиент присоединяется к игре
-            app.addHandler("join", ()=> {
-                 playerName = document.getElementById("player_name").value
-                 app.emit("join_game", {topic_pk: app.store.topic.pk, name: playerName})
-                 app.go("searching")
-            } )
-
-            // Обработка ответов
-            app.addHandler("answer", (index)=> {
-                app.emit("answer", {index: index + 1, game_uid: app.store.game.uid})
-                console.log(`Выделяем наш ответ ${index + 1}`)
-                option_element = document.querySelectorAll(".questions_option")[index]
-                option_element.classList.add("selected_option");
-            })
-
-            app.on("over", null, (data) => {
-                console.log(data)
-                app.run("feedback", app.store.game.answer)
-                setTimeout( () => { app.store.over = data; app.go("showover") }, 3000)
-            })
-
-           app.on("disconnect", "#disconnect")
+        // Когда игра пришла, обновляем ее
+        app.on("game", null, (data)=> {
 
 
+            if (app.store.game.question_count && app.store.game.question_count != data.question_count) {
+               // Если пришел новый вопрос показать сперва ответ, затем обновить вопрос
+               app.run("feedback", app.store.game.answer)
+               setTimeout( () => { app.store.game = data; app.go("playing")  }, 3000)
+            } else {
+               // если нет - сразу показать
+               app.store.game = data; app.go("playing")
+            }
 
         })
+
+
+
+        app.addHandler("feedback", (data)=> {
+            console.log(data)
+            index = data - 1
+            console.log(data)
+            console.log(`Выделяем правильный ответ ${index}`)
+            option_element = document.querySelectorAll(".questions_option")[index]
+            option_element.classList.add("correct_option")
+        })
+
+        // Обрабатываем нажатие назад
+        app.addHandler("back", ()=> {
+
+
+            if(app.store.topic.hasOwnProperty("pk")){
+                app.emit("left_queue", {topic_pk: app.store.topic.pk, name: playerName})
+            }
+            app.emit("get_topics")
+            <!--  app.go("topics") -->
+
+        })
+
+        // Клиент выбирает тему
+        app.addHandler("pick_topic", (topic)=> {
+            app.store.topic = topic
+            console.log(app.store.topic)
+            app.go("entering")
+        })
+
+        // Клиент присоединяется к игре
+        app.addHandler("join", ()=> {
+             playerName = document.getElementById("player_name").value
+             app.emit("join_game", {topic_pk: app.store.topic.pk, name: playerName})
+             app.go("searching")
+        } )
+
+        // Обработка ответов
+        app.addHandler("answer", (index)=> {
+            app.emit("answer", {index: index + 1, game_uid: app.store.game.uid})
+            console.log(`Выделяем наш ответ ${index + 1}`)
+            option_element = document.querySelectorAll(".questions_option")[index]
+            option_element.classList.add("selected_option");
+        })
+
+        app.on("over", null, (data) => {
+            console.log(data)
+            app.run("feedback", app.store.game.answer)
+            setTimeout( () => { app.store.over = data; app.go("showover") }, 3000)
+
+            app.store = {
+                          topic: {},
+                          game: {},
+                          over: {},
+                        }
+
+            console.log(app.store)
+
+        })
+
+       app.on("disconnect", "#disconnect")
+
+
+
+    })
     </script>
 </head>
 <body>

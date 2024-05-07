@@ -13,21 +13,21 @@ logger = logging.getLogger("riddle")
 class Riddle(socketio.AsyncNamespace):
     async def on_connect(self, sid, environ):
         logger.info(f"Client {sid} connect to {self.__class__.__qualname__}")
-        client = client_container.get_user(sid)
+        client = client_container.get_item(sid)
         client.create_game("riddle")
         await self.send_status()
 
     async def on_disconnect(self, sid):
-        client = client_container.get_user(sid)
+        client = client_container.get_item(sid)
         logger.info(f"Client {sid} connection time is : {client.connection_time()}")
-        client_container.del_user(sid)
+        client_container.del_item(sid)
         logger.info(
             f"Client {sid} disconnected from {self.__class__.__qualname__}, remain clients count: {len(client_container)}")
         await self.send_status()
 
     async def on_next(self, sid, data):
-        client = client_container.get_user(sid)
-        riddle = client.get_game
+        client = client_container.get_item(sid)
+        riddle = client.game
         riddle.get_question()
         question = riddle.question
         if question is not None:
@@ -38,8 +38,8 @@ class Riddle(socketio.AsyncNamespace):
             logger.info(f"Send over to {sid}")
 
     async def on_recreate(self, sid, data):
-        client = client_container.get_user(sid)
-        riddle = client.get_game
+        client = client_container.get_item(sid)
+        riddle = client.game
         riddle.recreate()
         riddle.get_question()
         question = riddle.question
@@ -49,8 +49,8 @@ class Riddle(socketio.AsyncNamespace):
     async def on_answer(self, sid, data):
         logger.info(f"Client {sid} send data: {data}")
         text = str(data.get("text")).strip()
-        client = client_container.get_user(sid)
-        riddle = client.get_game
+        client = client_container.get_item(sid)
+        riddle = client.game
         answer = riddle.answer
         question = riddle.question
         if is_correct := text.lower() in answer.lower():

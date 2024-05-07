@@ -2,7 +2,8 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 import csv
-from typing import Generator, Any, Sequence, MutableSequence
+from typing import Generator, Any, Sequence, MutableSequence, Optional
+from weakref import WeakKeyDictionary
 
 
 class Messages:
@@ -23,7 +24,6 @@ class Messages:
                     "author": author
                 })
 
-    @property
     def get_messages(self):
         return self._messages
 
@@ -37,50 +37,18 @@ class Client:
     """
 
     def __init__(self):
-        self._name = None
-        self._room = None
+        self.game = None
+        self.game_uid = None
+        self.name = None
+        self.room = None
         self._start = datetime.now()
         self._end = None
-        self._game = None
         self._messages = defaultdict(Messages)
-        self._game_uid = None
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        self._name = name
-
-    @property
-    def room(self):
-        return self._room
-
-    @room.setter
-    def room(self, room):
-        self._room = room
-
-    @room.deleter
-    def room(self):
-        self._room = None
-
-    @property
-    def game_uid(self):
-        return self._game_uid
-
-    @game_uid.setter
-    def game_uid(self, value):
-        self._game_uid = value
-
-    @game_uid.deleter
-    def game_uid(self):
-        self._game_uid = None
 
     def get_messages(self, room):
         if not room:
             raise AttributeError("The room doesn't pass!")
-        return self._messages[room].get_messages
+        return self._messages[room].get_messages()
 
     def add_message(self, room, data):
         if not room or not data:
@@ -99,28 +67,25 @@ class Client:
     def create_game(self, name=None):
         if name is None:
             raise AttributeError("The name of game didn't pass at attribute!")
-        elif name:
-            match name.lower():
-                case "riddle":
-                    self._game = Riddle()
-                case "trivia":
-                    self._game = Trivia()
-                case _:
-                    raise ValueError(f"The game {name}, not found!")
-        else:
-            raise ValueError(f"Cannot create game {name}")
+        match name.lower():
+            case "riddle":
+                self.game = Riddle()
+            case "trivia":
+                self.game = Trivia()
+            case _:
+                raise ValueError(f"The game {name}, not found!")
 
-    @property
-    def get_game(self):
-        return self._game
 
-    def __repr__(self):
-        return f"{type(self).__qualname__}(name={self._name}, room={self._room}\
-        ,messages={self._messages}, start={self._start}, end={self._end}, game={self._game}, game_uid={self._game_uid})"
+def __repr__(self):
+    return f"{type(self).__qualname__}(name={self.name}, room={self.room}\
+        ,messages={self._messages}, start={self._start}, end={self._end}, game={self.game}, game_uid={self.game_uid})"
 
 
 class SingletonsConstructor(type):
-    _instances = {}
+    """
+    Singletons metaclass
+    """
+    _instances = WeakKeyDictionary()
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
@@ -134,46 +99,48 @@ class SingletonsConstructor(type):
         return f"{type(self).__qualname__}(_instances={self._instances})"
 
 
-class ClientContainer(metaclass=SingletonsConstructor):
+class Container(metaclass=SingletonsConstructor):
+    objects = None
+
+    def get_item(self, item):
+        """
+        Get object from container by their SID or UID depends on subclass
+        :param item: uid or game_id depends on child class
+        :return: object of container
+        """
+        return self.objects[item]
+
+    def del_item(self, item) -> None:
+        """
+        Delete object from container by their ID
+        :param item:  uid or game_id depends on child class
+        """
+        if item in self.objects.keys():
+            del self.objects[item]
+
+    def __len__(self):
+        return len(self.objects)
+
+    def __repr__(self):
+        return f"{type(self).__qualname__}(users={self.objects})"
+
+
+class ClientContainer(Container):
     """
     Container, return information about Client by their SID
     """
 
     def __init__(self):
-        self._users = defaultdict(Client)
-
-    def get_user(self, sid):
-        return self._users[sid]
-
-    def del_user(self, sid):
-        del self._users[sid]
-
-    def __len__(self):
-        return len(self._users)
-
-    def __repr__(self):
-        return f"{type(self).__qualname__}(users={self._users})"
+        self.objects = defaultdict(Client)
 
 
-class GameContainer(metaclass=SingletonsConstructor):
+class GameContainer(Container):
     """
     Container, return information about Trivia instance by their UID
     """
 
     def __init__(self):
-        self._games = defaultdict(Trivia)
-
-    def get_game(self, uid):
-        return self._games[uid]
-
-    def del_game(self, uid):
-        del self._games[uid]
-
-    def __len__(self):
-        return len(self._games)
-
-    def __repr__(self):
-        return f"{type(self).__qualname__}(games={self._games})"
+        self.objects = defaultdict(Trivia)
 
 
 class Game:
@@ -206,7 +173,7 @@ class Game:
         self._score -= 1
 
     def __repr__(self):
-        return f"{type(self).__qualname__}(questions={self._questions},answer={self._answer},question={self._question},\
+        return f"{type(self).__name__}(questions={self._questions},answer={self._answer},question={self._question},\
         score={self._score})"
 
 
@@ -219,12 +186,15 @@ class Riddle(Game):
         ("Висит груша нельзя скушать?", "лампочка"), ("Зимой и летом одним цветом", "Ёлка")
     ]
 
+    def __init__(self):
+        super().__init__()
+
     def get_question(self):
         if self._questions is None:
             self._questions = list(Riddle._QUESTIONS)
-        if len(self._questions) > 0:
+        try:
             self._question, self._answer = self._questions.pop()
-        else:
+        except IndexError:
             self._answer = None
             self._question = None
 
@@ -241,21 +211,30 @@ class Trivia(Game):
 
     def __init__(self):
         super().__init__()
-        self._topics = []
         self._options = None
         self._users = []
         self._topic = None
         self._players_answers = []
 
     @staticmethod
-    def _read_csv(path) -> Generator[Any, None, None]:
+    def _read_csv(path) -> Generator[dict[str, Any], None, None]:
+        """
+        CSV reader
+        :param path: path to file
+        :return: Generator
+        """
         with open(path, 'r') as file:
             csv_reader = csv.DictReader(file)
             for row in csv_reader:
                 yield row
 
     @staticmethod
-    def load_topics(path):
+    def load_topics(path) -> None:
+        """
+        Load Trivia topics from provided path
+        :param path: topic file
+        :return:
+        """
         Trivia._topics = []
         for i in Trivia._read_csv(path):
             topic = i.get("pk")
@@ -264,38 +243,48 @@ class Trivia(Game):
                 i["has_players"] = True
             Trivia._topics.append(i)
 
-    def load_questions(self, path):
+    def load_questions(self, path) -> None:
+        """
+        Load Trivia questions from provided path
+        :param path: questions file
+        """
         if self._questions is None:
             self._questions = defaultdict(list)
         for i in Trivia._read_csv(path):
-            self._questions[i["topic"]].append({
-                "text": i["text"],
-                "answer": i["answer"],
-                "options": [v for k, v in i.items() if k in ["1", "2", "3", "4"]]
-            })
+            self._questions[i["topic"]].append(
+                {
+                    "text": i["text"],
+                    "answer": i["answer"],
+                    "options": [v for k, v in i.items() if k in ["1", "2", "3", "4"]]
+                })
 
-    @property
-    def topics(self):
-        return Trivia._topics
-
-    def _questions_per_topic(self, topic: str | int):
+    def _questions_per_topic(self, topic: str | int) -> list[dict]:
+        """
+        Provide question for topic
+        :param topic: topic number
+        :return: List with questions
+        """
         t = str(topic)
         return self._questions.get(t)
 
     @property
-    def options(self):
+    def topics(self) -> list[str]:
+        return Trivia._topics
+
+    @property
+    def options(self) -> list[str]:
         return self._options
 
     @property
-    def users(self):
+    def users(self) -> list[str]:
         return self._users
 
-    def add_user(self, sid: str):
+    def add_user(self, sid: str) -> None:
         if sid not in self.users:
             self._users.append(sid)
 
     @property
-    def topic(self):
+    def topic(self) -> str:
         return self._topic
 
     @topic.setter
@@ -303,55 +292,81 @@ class Trivia(Game):
         t = str(topic)
         self._topic = t
 
-    def get_players(self):
+    def get_players(self) -> list[dict]:
+        """
+        Get players with their scores
+        :return: score for players
+        """
         players = []
-        if users := self.users:
-            for sid in users:
+        if self.users:
+            for sid in self._users:
                 container = ClientContainer()
-                client = container.get_user(sid)
-                trivia = client.get_game
-                players.append({
-                    "name": client.name,
-                    "score": trivia.score
-                })
+                client = container.get_item(sid)
+                trivia = client.game
+                players.append(
+                    {
+                        "name": client.name,
+                        "score": trivia.score
+                    })
         return players
 
-    def get_question(self, topic: str | int):
-        if len(self._questions_per_topic(topic)) > 0:
+    def get_question(self, topic: str | int) -> None:
+        """
+        Assign next question/answer/options per topic
+        :param topic: topic number
+        """
+        try:
             current = self._questions_per_topic(topic).pop()
+        except IndexError:
+            self._answer = None
+            self._options = None
+            self._question = None
+        else:
             indx = int(current.get("answer"))
             self._answer = indx
             self._options = current.get("options")
             self._question = current.get("text")
-        else:
-            self._answer = None
-            self._options = None
-            self._question = None
 
-    def remaining_question_on_topic(self, topic):
+    def remaining_question_on_topic(self, topic) -> int:
+        """
+        Evaluate remaining question per topic
+        :param topic: topic number
+        :return: number of remaining question
+        """
         t = str(topic)
         return len(self._questions.get(t))
 
-    def add_game_answer(self, index, sid):
-        flag = False
+    def add_game_answer(self, index, sid) -> None:
+        """
+        Add player answer
+        :param index: number of player answer
+        :param sid: player SID
+        """
+        answer_exist = False
         for answers in self._players_answers:
             if sid in answers.values():
-                flag = True
-        if not flag:
+                answer_exist = True
+        if not answer_exist:
             self._players_answers.append({
                 "answer": index,
                 "sid": sid
             })
-        print(self._players_answers)
 
-    def clear_game_answers(self):
+    def clear_game_answers(self) -> None:
+        """
+        Clear players answers, need clear after each question
+        """
         self._players_answers.clear()
 
-    def get_game_answers(self):
+    def get_game_answers(self) -> list[dict]:
+        """
+        Get players answers
+        :return:
+        """
         return self._players_answers
 
     def __repr__(self):
-        return (f"{super().__repr__()},topics={self._topics},options={self._options},user={self._users},"
+        return (f"{super().__repr__()},topics={self._topics},options={self._options},users={self._users},"
                 f"topic={self._topic},players_answers={self._players_answers}")
 
 
@@ -380,7 +395,7 @@ class WaitingRoom(metaclass=SingletonsConstructor):
     def clear_topic(self, topic):
         t = str(topic)
         if t in self._waiting_room.keys():
-            self._waiting_room[t].clear()
+            del self._waiting_room[t]
         else:
             raise ValueError("Topic not found!")
 
@@ -394,4 +409,4 @@ class WaitingRoom(metaclass=SingletonsConstructor):
                 players.remove(sid)
 
     def __repr__(self):
-        return f"{type(self).__qualname__},waiting_room={self._waiting_room}"
+        return f"{type(self).__qualname__}(waiting_room={self._waiting_room})"
