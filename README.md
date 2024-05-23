@@ -11,7 +11,7 @@ All three game glue together with custom classes.
 - pytest
 - custom class for business logic
 - site templates with Handlebars
-- lightweight SocketIO js client
+- lightweight SocketIO javascript client
 
 well-structured code:
 
