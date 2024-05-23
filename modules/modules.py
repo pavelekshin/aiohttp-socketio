@@ -1,8 +1,7 @@
-from collections import defaultdict
-from copy import deepcopy
-from datetime import datetime
 import csv
-from typing import Generator, Any, Sequence, MutableSequence, Optional
+from collections import defaultdict
+from datetime import datetime
+from typing import Any, Generator
 from weakref import WeakKeyDictionary
 
 
@@ -18,11 +17,7 @@ class Messages:
         msg = message.get("text")
         author = message.get("author")
         if len(msg.strip()) > 0:
-            self._messages.append(
-                {
-                    "text": msg,
-                    "author": author
-                })
+            self._messages.append({"text": msg, "author": author})
 
     def get_messages(self):
         return self._messages
@@ -61,7 +56,7 @@ class Client:
         seconds = duration.seconds
         hours = seconds // 3600
         minutes = (seconds % 3600) // 60
-        seconds = (seconds % 60)
+        seconds = seconds % 60
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
     def create_game(self, name=None):
@@ -75,16 +70,16 @@ class Client:
             case _:
                 raise ValueError(f"The game {name}, not found!")
 
-
-def __repr__(self):
-    return f"{type(self).__qualname__}(name={self.name}, room={self.room}\
-        ,messages={self._messages}, start={self._start}, end={self._end}, game={self.game}, game_uid={self.game_uid})"
+    def __repr__(self):
+        return f"{type(self).__qualname__}(name={self.name}, room={self.room}\
+            ,messages={self._messages}, start={self._start}, end={self._end}, game={self.game}, game_uid={self.game_uid})"
 
 
 class SingletonsConstructor(type):
     """
     Singletons metaclass
     """
+
     _instances = WeakKeyDictionary()
 
     def __call__(cls, *args, **kwargs):
@@ -95,8 +90,8 @@ class SingletonsConstructor(type):
             instance = cls._instances[cls]
         return instance
 
-    def __repr__(self):
-        return f"{type(self).__qualname__}(_instances={self._instances})"
+    def __repr__(cls):
+        return f"{type(cls).__qualname__}(_instances={cls._instances})"
 
 
 class Container(metaclass=SingletonsConstructor):
@@ -183,7 +178,8 @@ class Riddle(Game):
     """
 
     _QUESTIONS = [
-        ("Висит груша нельзя скушать?", "лампочка"), ("Зимой и летом одним цветом", "Ёлка")
+        ("Висит груша нельзя скушать?", "лампочка"),
+        ("Зимой и летом одним цветом", "Ёлка"),
     ]
 
     def __init__(self):
@@ -223,7 +219,7 @@ class Trivia(Game):
         :param path: path to file
         :return: Generator
         """
-        with open(path, 'r') as file:
+        with open(path, "r") as file:
             csv_reader = csv.DictReader(file)
             for row in csv_reader:
                 yield row
@@ -255,8 +251,9 @@ class Trivia(Game):
                 {
                     "text": i["text"],
                     "answer": i["answer"],
-                    "options": [v for k, v in i.items() if k in ["1", "2", "3", "4"]]
-                })
+                    "options": [v for k, v in i.items() if k in ["1", "2", "3", "4"]],
+                }
+            )
 
     def _questions_per_topic(self, topic: str | int) -> list[dict]:
         """
@@ -303,11 +300,7 @@ class Trivia(Game):
                 container = ClientContainer()
                 client = container.get_item(sid)
                 trivia = client.game
-                players.append(
-                    {
-                        "name": client.name,
-                        "score": trivia.score
-                    })
+                players.append({"name": client.name, "score": trivia.score})
         return players
 
     def get_question(self, topic: str | int) -> None:
@@ -347,10 +340,7 @@ class Trivia(Game):
             if sid in answers.values():
                 answer_exist = True
         if not answer_exist:
-            self._players_answers.append({
-                "answer": index,
-                "sid": sid
-            })
+            self._players_answers.append({"answer": index, "sid": sid})
 
     def clear_game_answers(self) -> None:
         """
@@ -366,8 +356,10 @@ class Trivia(Game):
         return self._players_answers
 
     def __repr__(self):
-        return (f"{super().__repr__()},topics={self._topics},options={self._options},users={self._users},"
-                f"topic={self._topic},players_answers={self._players_answers}")
+        return (
+            f"{super().__repr__()},topics={self._topics},options={self._options},users={self._users},"
+            f"topic={self._topic},players_answers={self._players_answers}"
+        )
 
 
 class WaitingRoom(metaclass=SingletonsConstructor):

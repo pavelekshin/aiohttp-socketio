@@ -1,5 +1,4 @@
 import asyncio
-import logging
 
 import pytest
 import pytest_asyncio
@@ -7,49 +6,15 @@ import socketio
 from aiohttp import web
 from socketio import AsyncClient
 
-from modules.modules import Riddle
 from app import init_app
+from modules.modules import Riddle
 
 EXPECTED_CHAT_DATA = []
 EXPECTED_RIDDLE_DATA = []
 EXPECTED_TRIVIA_DATA = []
 
 
-# override event_loop scope for pytest-asyncio 0.21.1
-# @pytest.fixture(scope="session")
-# def event_loop(request):
-#     try:
-#         loop = asyncio.get_running_loop()
-#     except RuntimeError:
-#         loop = asyncio.get_event_loop_policy().new_event_loop()
-#     yield loop
-#     loop.close()
-
-
-# @pytest.fixture(scope="session")
-# async def server(aiohttp_server):
-#     # aiohttp_server is function scope, so server is started/stopped for each test
-#     app = await init_app()
-#     server = await aiohttp_server(app, port=8080)
-#     yield server
-#     await server.close()
-
-@pytest_asyncio.fixture(scope="session")
-async def server():
-    app = await init_app()
-    runner = web.AppRunner(app, shutdown_timeout=3)
-    await runner.setup()
-    site = web.TCPSite(runner, port=8080)
-    await site.start()
-    yield site
-    await asyncio.sleep(1)
-    await runner.cleanup()
-
-
-@pytest_asyncio.fixture(scope="session", name="sio")
-async def client(server):
-    sio = socketio.AsyncClient(logger=True, engineio_logger=True)
-
+def init_chat(sio):
     @sio.on("connect", namespace="/chat")
     async def on_connect():
         EXPECTED_CHAT_DATA.append("connected")
@@ -62,6 +27,8 @@ async def client(server):
     async def on_rooms(data):
         EXPECTED_CHAT_DATA.append(data)
 
+
+def init_riddle(sio):
     @sio.on("connect", namespace="/riddle")
     async def on_connect():
         EXPECTED_RIDDLE_DATA.append("connected")
@@ -82,6 +49,24 @@ async def client(server):
     async def on_score(data):
         EXPECTED_RIDDLE_DATA.append(data)
 
+
+@pytest_asyncio.fixture(scope="session")
+async def server():
+    app = await init_app()
+    runner = web.AppRunner(app, shutdown_timeout=3)
+    await runner.setup()
+    site = web.TCPSite(runner, port=8080)
+    await site.start()
+    yield site
+    await asyncio.sleep(1)
+    await runner.cleanup()
+
+
+@pytest_asyncio.fixture(scope="session", name="sio")
+async def client(server):  # noqa
+    sio = socketio.AsyncClient(logger=True, engineio_logger=True)
+    init_chat(sio)
+    init_riddle(sio)
     yield sio
     await sio.disconnect()
 
@@ -89,11 +74,11 @@ async def client(server):
 @pytest_asyncio.fixture(scope="session", name="conn")
 async def conn(sio):
     try:
-        await sio.connect(url="http://127.0.0.1:8080", )
+        await sio.connect(url="http://127.0.0.1:8080")
         yield sio
         await sio.disconnect()
-    except socketio.exceptions.ConnectionError as e:
-        print(f"Error: {e}")
+    except socketio.exceptions.ConnectionError as err:
+        print(f"Error: {err}")
         await sio.disconnect()
 
 
@@ -105,23 +90,15 @@ def idtype(val):
 @pytest.mark.parametrize(
     "event, data, expected",
     [
+        ("connected", None, "connected"),
+        ("get_rooms", {}, ["sex", "drugs", "rock'n'roll"]),
         (
-                "connected",
-                None,
-                "connected"
-        ),
-        (
-                "get_rooms",
-                {},
-                ["lobby", "general", "random"]
-        ),
-        (
-                "join",
-                {"name": "test_client", "room": "lobby"},
-                {'text': 'welcome to lobby'}
+            "join",
+            {"name": "test_client", "room": "lobby"},
+            {"text": "welcome to lobby"},
         ),
     ],
-    ids=idtype
+    ids=idtype,
 )
 async def test_chat(conn: AsyncClient, event, data, expected):
     await conn.emit(event, data=data, namespace="/chat")
@@ -138,38 +115,30 @@ def riddle():
 @pytest.mark.parametrize(
     "event, data, expected",
     [
+        ("connected", None, "connected"),
+        ("next", {}, {"text": riddle().question}),
         (
-                "connected",
-                None,
-                "connected"
+            "answer",
+            {"text": riddle().answer},
+            {
+                "riddle": riddle().question,
+                "is_correct": "true",
+                "answer": riddle().answer,
+            },
         ),
         (
-                "next",
-                {},
-                {"text": riddle().question}
+            "answer",
+            {"text": "asd"},
+            {
+                "riddle": riddle().question,
+                "is_correct": "false",
+                "answer": riddle().answer,
+            },
         ),
-        (
-                "answer",
-                {"text": riddle().answer},
-                {"riddle": riddle().question, "is_correct": "true", "answer": riddle().answer}
-        ),
-        (
-                "answer",
-                {"text": "asd"},
-                {"riddle": riddle().question, "is_correct": "false", "answer": riddle().answer}
-        ),
-        (
-                "score",
-                {},
-                {"value": 1}
-        ),
-        (
-                "recreate",
-                {},
-                {"text": riddle().question}
-        )
+        ("score", {}, {"value": 1}),
+        ("recreate", {}, {"text": riddle().question}),
     ],
-    ids=idtype
+    ids=idtype,
 )
 async def test_riddle(conn: AsyncClient, event, data, expected):
     await conn.emit(event, data=data, namespace="/riddle")

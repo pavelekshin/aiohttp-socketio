@@ -4,7 +4,8 @@ import uuid
 import socketio
 
 from config.config_folder import get_config_folder
-from modules.modules import ClientContainer, WaitingRoom, GameContainer
+from helper import send_status
+from modules.modules import ClientContainer, GameContainer, WaitingRoom
 
 client_container = ClientContainer()
 game_container = GameContainer()
@@ -16,7 +17,7 @@ logger = logging.getLogger("trivia")
 class Trivia(socketio.AsyncNamespace):
     async def on_connect(self, sid, environ):
         logger.info(f"Client {sid} connect to {self.__class__.__qualname__}")
-        await self.send_status()
+        await send_status(client_container, logger)
 
     async def on_get_topics(self, sid, data):
         logger.info(f"Client {sid} send data: {data} on {self.__class__.__qualname__}")
@@ -45,7 +46,8 @@ class Trivia(socketio.AsyncNamespace):
             body = get_answer_body(trivia=trivia, topic=topic, uid=uid)
             await self.emit("game", room=uid, data=body)
             logger.info(
-                f"Send event \"game\" on {self.__class__.__qualname__} to {uid}, with body: {body}")
+                f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
+            )
         else:
             await self.emit(None, data={})
 
@@ -62,14 +64,14 @@ class Trivia(socketio.AsyncNamespace):
                 body = get_answer_body(trivia=trivia, topic=trivia.topic, uid=uid)
                 await self.emit("game", room=uid, data=body)
                 logger.info(
-                    f"Send event \"game\" on {self.__class__.__qualname__} to {uid}, with body: {body}"
+                    f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
                 )
             else:
                 players = trivia.get_players()
                 body = {"players": players}
                 await self.emit("over", room=uid, data=body)
                 logger.info(
-                    f"Send event \"over\" on {self.__class__.__qualname__} to {uid}, with body: {body}"
+                    f'Send event "over" on {self.__class__.__qualname__} to {uid}, with body: {body}'
                 )
         else:  # do nothing if we receive only one answer
             pass
@@ -81,20 +83,7 @@ class Trivia(socketio.AsyncNamespace):
     async def on_disconnect(self, sid):
         logger.info(f"Client: {sid} disconnected from {self.__class__.__qualname__}")
         run_clear_on_disconnect(sid)
-        await self.send_status()
-
-    @staticmethod
-    async def send_status():
-        match len(client_container):
-            case 0:
-                status = "Server is empty"
-            case 1:
-                status = "Server has one client"
-            case 2 | 3:
-                status = "Server has 2 or 3 clients"
-            case _:
-                status = "Server has 3 more clients"
-        logger.info(status)
+        await send_status(client_container, logger)
 
 
 def check_answers(*, correct_answer=None, answers=None):
@@ -120,10 +109,7 @@ def get_answer_body(*, trivia=None, topic=None, uid=None):
         "question_count": count,
         "players": players,
         "answer": trivia.answer,
-        "current_question": {
-            "text": trivia.question,
-            "options": trivia.options
-        }
+        "current_question": {"text": trivia.question, "options": trivia.options},
     }
 
 

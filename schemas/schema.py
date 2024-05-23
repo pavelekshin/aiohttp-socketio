@@ -1,12 +1,11 @@
-from typing import Annotated
-
-from pydantic import BaseModel, Field, field_serializer, PlainSerializer
+from pydantic import BaseModel, Field, field_serializer
 
 
 class OnChatJoin(BaseModel):
     """
     Validation "join" event chat messages
     """
+
     name: str = Field(min_length=3, max_length=15)
     room: str = Field(str)
 
@@ -15,6 +14,7 @@ class OnRiddleAnswer(BaseModel):
     """
     Serializer for "answer" event riddle messages
     """
+
     riddle: str = Field(str)
     is_correct: bool
     answer: str = Field(str)

@@ -3,6 +3,7 @@ import logging
 import socketio
 from pydantic import ValidationError
 
+from helper import send_status
 from modules.modules import ClientContainer
 from schemas.schema import OnRiddleAnswer
 
@@ -15,15 +16,16 @@ class Riddle(socketio.AsyncNamespace):
         logger.info(f"Client {sid} connect to {self.__class__.__qualname__}")
         client = client_container.get_item(sid)
         client.create_game("riddle")
-        await self.send_status()
+        await send_status(client_container, logger)
 
     async def on_disconnect(self, sid):
         client = client_container.get_item(sid)
         logger.info(f"Client {sid} connection time is : {client.connection_time()}")
         client_container.del_item(sid)
         logger.info(
-            f"Client {sid} disconnected from {self.__class__.__qualname__}, remain clients count: {len(client_container)}")
-        await self.send_status()
+            f"Client {sid} disconnected from {self.__class__.__qualname__}, remain clients count: {len(client_container)}"
+        )
+        await send_status(client_container, logger)
 
     async def on_next(self, sid, data):
         client = client_container.get_item(sid)
@@ -58,24 +60,11 @@ class Riddle(socketio.AsyncNamespace):
         try:
             data = {"riddle": question, "is_correct": is_correct, "answer": answer}
             msg = OnRiddleAnswer(**data)
-        except ValidationError as e:
-            errors = e.json()
+        except ValidationError as err:
+            errors = err.json()
             await self.emit("errors", to=sid, data=errors)
             logger.error(f"Error occurred {errors}, sending to {sid}")
             return
         await self.emit("result", to=sid, data=msg.model_dump())
         logger.info(f"Send data {msg.model_dump_json()} to {sid}")
         await self.emit("score", to=sid, data={"value": riddle.score})
-
-    @staticmethod
-    async def send_status():
-        match len(client_container):
-            case 0:
-                status = "Server is empty"
-            case 1:
-                status = "Server has one client"
-            case 2 | 3:
-                status = "Server has 2 or 3 clients"
-            case _:
-                status = "Server has 3 more clients"
-        logger.info(status)
