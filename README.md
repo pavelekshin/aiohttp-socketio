@@ -42,3 +42,16 @@ well-structured code:
 │   └── trivia
 └── tests                                     - pytest
 ```
+
+### Chat application:
+
+![chat.png](images%2Fchat.png)
+
+### Riddle application:
+
+![riddle.png](images%2Friddle.png)
+
+### Trivia application:
+
+![trivia.png](images%2Ftrivia.png)
+![trivia-2.png](images%2Ftrivia-2.png)
