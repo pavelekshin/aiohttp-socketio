@@ -8,7 +8,7 @@ All three game glue together with custom classes.
 - SocketIO
 - pydantic
 - logging
-- pytest
+- pytest-asyncio
 - custom class for business logic
 - site templates with Handlebars
 - lightweight SocketIO javascript client
