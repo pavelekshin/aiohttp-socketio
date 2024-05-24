@@ -1,3 +1,6 @@
+import uuid
+
+
 async def send_status(client_container, logger):
     match len(client_container):
         case 0:
@@ -9,3 +12,7 @@ async def send_status(client_container, logger):
         case _:
             status = "Server has 3 more clients"
     logger.info(status)
+
+
+def generate_game_uuid():
+    return str(uuid.uuid4())

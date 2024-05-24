@@ -1,10 +1,9 @@
 import logging
-import uuid
 
 import socketio
 
 from config.config_folder import get_config_folder
-from helper import send_status
+from helper import send_status, generate_game_uuid
 from modules.modules import ClientContainer, GameContainer, WaitingRoom
 
 client_container = ClientContainer()
@@ -122,10 +121,6 @@ def run_clear_on_disconnect(sid):
     client_container.del_item(sid)
     del client
     del uid
-
-
-def generate_game_uuid():
-    return str(uuid.uuid4())
 
 
 def set_client_data_and_get_topic(*, data=None, sid=None):

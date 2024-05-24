@@ -7,6 +7,9 @@ from aiohttp import web
 from socketio import AsyncClient
 
 from app import init_app
+from apps.trivia import game_container, get_answer_body
+from config.config_folder import get_config_folder
+from helper import generate_game_uuid
 from modules.modules import Riddle
 
 EXPECTED_CHAT_DATA = []
@@ -50,6 +53,20 @@ def init_riddle(sio):
         EXPECTED_RIDDLE_DATA.append(data)
 
 
+def init_trivia(sio):
+    @sio.on("connect", namespace="/trivia")
+    async def on_connect():
+        EXPECTED_TRIVIA_DATA.append("connected")
+
+    @sio.on("topics", namespace="/trivia")
+    async def on_topics(data):
+        EXPECTED_TRIVIA_DATA.append(data)
+
+    @sio.on("game", namespace="/trivia")
+    async def on_game(data):
+        EXPECTED_TRIVIA_DATA.append(data)
+
+
 @pytest_asyncio.fixture(scope="session")
 async def server():
     app = await init_app()
@@ -63,10 +80,11 @@ async def server():
 
 
 @pytest_asyncio.fixture(scope="session", name="sio")
-async def client(server):  # noqa
+async def client(server):
     sio = socketio.AsyncClient(logger=True, engineio_logger=True)
     init_chat(sio)
     init_riddle(sio)
+    init_trivia(sio)
     yield sio
     await sio.disconnect()
 
@@ -102,7 +120,7 @@ def idtype(val):
 )
 async def test_chat(conn: AsyncClient, event, data, expected):
     await conn.emit(event, data=data, namespace="/chat")
-    await conn.sleep(2)
+    await conn.sleep(0.5)
     assert expected in EXPECTED_CHAT_DATA
 
 
@@ -128,7 +146,7 @@ def riddle():
         ),
         (
             "answer",
-            {"text": "asd"},
+            {"text": "WRONG"},
             {
                 "riddle": riddle().question,
                 "is_correct": "false",
@@ -142,11 +160,40 @@ def riddle():
 )
 async def test_riddle(conn: AsyncClient, event, data, expected):
     await conn.emit(event, data=data, namespace="/riddle")
-    await conn.sleep(2)
+    await conn.sleep(0.5)
     assert expected in EXPECTED_RIDDLE_DATA
 
 
-@pytest.mark.skip("Not implemented")
+def trivia_topics():
+    trivia = game_container.get_item("topics")
+    topics_path = get_config_folder("trivia_topics.csv")
+    trivia.load_topics(topics_path)
+    topics = trivia.topics
+    return topics
+
+
+def trivia_game():
+    topic = 5
+    trivia = game_container.get_item("topics")
+    question_path = get_config_folder("trivia_questions.csv")
+    trivia.load_questions(question_path)
+    trivia.topic = topic
+    response = get_answer_body(trivia=trivia, topic=topic, uid=generate_game_uuid())
+    EXPECTED_TRIVIA_DATA.append(response)
+    return response
+
+
+@pytest.mark.parametrize(
+    "event, data, expected",
+    [
+        ("connected", None, "connected"),
+        ("get_topics", {}, trivia_topics()),
+        ("join_game", {"topic_pk": 5, "name": "Player_name"}, trivia_game()),
+        # TODO: complete tests
+    ],
+    ids=idtype,
+)
 async def test_trivia(conn: AsyncClient, event, data, expected):
-    pass
-    # TODO: need to realise this functionality
+    await conn.emit(event, data=data, namespace="/trivia")
+    await conn.sleep(0.5)
+    assert expected in EXPECTED_TRIVIA_DATA
