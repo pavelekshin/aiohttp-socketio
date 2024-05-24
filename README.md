@@ -1,7 +1,7 @@
 # SocketIO on Aiohttp
 
 Hands-on experience with Socket.IO and Aiohttp.\
-Project include three socket.io app: Chat, Riddle game and Multiplayer Trivia game.\
+Project include three Socket.IO independent app: Chat, Riddle game and Multiplayer Trivia game.\
 All three game glue together with custom classes.
 
 - Aiohttp
