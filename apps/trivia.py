@@ -3,7 +3,7 @@ import logging
 import socketio
 
 from config.config_folder import get_config_folder
-from helper import send_status, generate_game_uuid
+from helper import generate_game_uuid, send_status
 from modules.modules import ClientContainer, GameContainer, WaitingRoom
 
 client_container = ClientContainer()
@@ -81,7 +81,9 @@ class Trivia(socketio.AsyncNamespace):
 
     async def on_disconnect(self, sid):
         logger.info(f"Client: {sid} disconnected from {self.__class__.__qualname__}")
-        run_clear_on_disconnect(sid)
+        client = client_container.get_item(sid)
+        logger.info(f"Client {sid} connection time is : {client.connection_time()}")
+        run_clear_on_disconnect(client, sid)
         await send_status(client_container, logger)
 
 
@@ -112,9 +114,7 @@ def get_answer_body(*, trivia=None, topic=None, uid=None):
     }
 
 
-def run_clear_on_disconnect(sid):
-    client = client_container.get_item(sid)
-    logger.info(f"Client {sid} connection time is : {client.connection_time()}")
+def run_clear_on_disconnect(client, sid):
     waiting_room.remove_sid_from_waiting_room(sid)
     uid = client.game_uid
     game_container.del_item(uid)
