@@ -10,8 +10,9 @@ All three game glue together with custom classes.
 - logging
 - pytest-asyncio
 - custom class for business logic
+- lightweight SocketIO js client
 - site templates with Handlebars
-- lightweight SocketIO javascript client
+
 
 well-structured code:
 
