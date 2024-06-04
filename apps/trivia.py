@@ -80,9 +80,11 @@ class Trivia(socketio.AsyncNamespace):
         waiting_room.remove_sid_from_waiting_room(sid)
 
     async def on_disconnect(self, sid):
-        logger.info(f"Client: {sid} disconnected from {self.__class__.__qualname__}")
         client = client_container.get_item(sid)
-        logger.info(f"Client {sid} connection time is : {client.connection_time()}")
+        logger.info(
+            f"Client {sid} disconnected from {self.__class__.__qualname__},"
+            f" connection time is : {client.connection_time()}"
+        )
         run_clear_on_disconnect(client, sid)
         await send_status(client_container, logger)
 

@@ -21,10 +21,10 @@ class Chat(socketio.AsyncNamespace):
 
     async def on_disconnect(self, sid):
         client = client_container.get_item(sid)
-        logger.info(f"Client {sid} connection time is : {client.connection_time()}")
         client_container.del_item(sid)
         logger.info(
-            f"Client: {sid} disconnected from {self.__class__.__qualname__}, remain clients count: {len(client_container)}"
+            f"Client: {sid} disconnected from {self.__class__.__qualname__}, "
+            f"connection time is : {client.connection_time()}"
         )
         await send_status(client_container, logger)
 

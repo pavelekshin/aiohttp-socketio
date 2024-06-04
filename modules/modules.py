@@ -1,6 +1,6 @@
 import csv
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Generator
 from weakref import WeakKeyDictionary
 
@@ -53,11 +53,8 @@ class Client:
     def connection_time(self):
         self._end = datetime.now()
         duration = self._end - self._start
-        seconds = duration.seconds
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        seconds = seconds % 60
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        dt = datetime.fromtimestamp(duration.total_seconds(), tz=timezone.utc)
+        return dt.strftime("%H:%M:%S")
 
     def create_game(self, name=None):
         if name is None:
