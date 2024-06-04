@@ -1,8 +1,9 @@
 import csv
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Generator
 from weakref import WeakKeyDictionary
+from zoneinfo import ZoneInfo
 
 
 class Messages:
@@ -53,7 +54,7 @@ class Client:
     def connection_time(self):
         self._end = datetime.now()
         duration = self._end - self._start
-        dt = datetime.fromtimestamp(duration.total_seconds(), tz=timezone.utc)
+        dt = datetime.fromtimestamp(duration.total_seconds(), tz=ZoneInfo("UTC"))
         return dt.strftime("%H:%M:%S")
 
     def create_game(self, name=None):
