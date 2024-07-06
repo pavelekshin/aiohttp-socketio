@@ -8,7 +8,6 @@ from aiohttp import web
 from apps.chat import Chat
 from apps.riddle import Riddle
 from apps.trivia import Trivia
-from config.config_folder import get_config_folder
 from routes import setup_routes
 
 
@@ -16,8 +15,7 @@ async def init_app():
     # Create webapp
     app = web.Application()
     # logger
-    logger_path = get_config_folder("logging.yaml")
-    init_logger(logger_path)
+    logging.basicConfig(level="DEBUG")
     logger = logging.getLogger()
     # init socketio.AsyncServer in app scope
     app["sio"] = socketio.AsyncServer(
@@ -39,9 +37,3 @@ async def init_app():
 async def context(app):
     yield
     await app["sio"].shutdown()
-
-
-def init_logger(config_path):
-    with open(config_path, "r") as file:
-        config = yaml.safe_load(file.read())
-    logging.config.dictConfig(config)
