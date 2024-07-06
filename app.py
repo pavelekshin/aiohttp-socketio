@@ -2,7 +2,6 @@ import logging
 import logging.config
 
 import socketio
-import yaml
 from aiohttp import web
 
 from apps.chat import Chat
