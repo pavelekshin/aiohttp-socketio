@@ -43,10 +43,18 @@ class Trivia(socketio.AsyncNamespace):
             trivia.load_questions(question_path)
             trivia.topic = topic
             body = get_answer_body(trivia=trivia, topic=topic, uid=uid)
-            await self.emit("game", room=uid, data=body)
-            logger.info(
-                f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
-            )
+            if trivia.remaining_question_on_topic(trivia.topic) > 0:
+                await self.emit("game", room=uid, data=body)
+                logger.info(
+                    f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
+                )
+            else:
+                players = trivia.get_players()
+                body = {"players": players}
+                await self.emit("no_question", room=uid, data=body)
+                logger.info(
+                    f'Send event "no_question" on {self.__class__.__qualname__} to {uid}, with body: {body}'
+                )
         else:
             await self.emit(None, data={})
 
@@ -72,8 +80,6 @@ class Trivia(socketio.AsyncNamespace):
                 logger.info(
                     f'Send event "over" on {self.__class__.__qualname__} to {uid}, with body: {body}'
                 )
-        else:  # do nothing if we receive only one answer
-            pass
 
     async def on_release_queue(self, sid, data):
         logger.info(f"Client {sid} send data: {data} on {self.__class__.__qualname__}")
