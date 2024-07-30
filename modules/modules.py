@@ -186,9 +186,9 @@ class Riddle(Game):
     def get_question(self):
         if self._questions is None:
             self._questions = list(Riddle._QUESTIONS)
-        try:
+        elif self._questions:
             self._question, self._answer = self._questions.pop()
-        except IndexError:
+        else:
             self._answer = None
             self._question = None
 
@@ -197,11 +197,11 @@ class Riddle(Game):
 
 
 class Trivia(Game):
-    _topics = []
-
     """
     Class store trivia game actions
     """
+
+    _topics = []
 
     def __init__(self):
         super().__init__()
@@ -222,20 +222,20 @@ class Trivia(Game):
             for row in csv_reader:
                 yield row
 
-    @staticmethod
-    def load_topics(path) -> None:
+    @classmethod
+    def load_topics(cls, path) -> None:
         """
         Load Trivia topics from provided path
         :param path: topic file
         :return:
         """
-        Trivia._topics = []
+        cls._topics = []
         for i in Trivia._read_csv(path):
             topic = i.get("pk")
             waiting_room = WaitingRoom()
             if waiting_room.get_sid_per_topic(topic):
                 i["has_players"] = True
-            Trivia._topics.append(i)
+            cls._topics.append(i)
 
     def load_questions(self, path) -> None:
         """
@@ -255,7 +255,7 @@ class Trivia(Game):
 
     def _questions_per_topic(self, topic: str | int) -> list[dict]:
         """
-        Provide question for topic
+        Provide question for topics
         :param topic: topic number
         :return: List with questions
         """
@@ -303,29 +303,30 @@ class Trivia(Game):
 
     def get_question(self, topic: str | int) -> None:
         """
-        Assign next question/answer/options per topic
+        Assign next question/answer/options per topics
         :param topic: topic number
         """
-        try:
-            current = self._questions_per_topic(topic).pop()
-        except IndexError:
-            self._answer = None
-            self._options = None
-            self._question = None
-        else:
+        data = self._questions_per_topic(topic)
+        if data:
+            current = data.pop()
             indx = int(current.get("answer"))
             self._answer = indx
             self._options = current.get("options")
             self._question = current.get("text")
+        else:
+            self._answer = None
+            self._options = None
+            self._question = None
 
     def remaining_question_on_topic(self, topic) -> int:
         """
-        Evaluate remaining question per topic
+        Evaluate remaining question per topics
         :param topic: topic number
-        :return: number of remaining question
+        :return: count of remaining question
         """
         t = str(topic)
-        return len(self._questions.get(t))
+        questions = self._questions.get(t)
+        return len(questions) if questions else 0
 
     def add_game_answer(self, index, sid) -> None:
         """
