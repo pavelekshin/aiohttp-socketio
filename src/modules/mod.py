@@ -1,6 +1,4 @@
-import abc
 import csv
-from abc import abstractmethod
 from collections import defaultdict
 from datetime import datetime
 from numbers import Number
@@ -273,7 +271,7 @@ class Trivia(Game):
             )
 
     def _questions_per_topic(
-            self, topic: str
+        self, topic: str
     ) -> list[dict[str, int | str | list[str]]] | None:
         """
         Provide question for topics
