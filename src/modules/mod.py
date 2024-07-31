@@ -1,3 +1,4 @@
+import abc
 import csv
 from abc import abstractmethod
 from collections import defaultdict
@@ -96,14 +97,6 @@ class SingletonsConstructor(type):
 
 class Container(metaclass=SingletonsConstructor):
     objects: defaultdict
-
-    @abstractmethod
-    def get_item(self, item):
-        pass
-
-    @abstractmethod
-    def del_item(self, item) -> None:
-        pass
 
     def __len__(self):
         return len(self.objects)
@@ -280,7 +273,7 @@ class Trivia(Game):
             )
 
     def _questions_per_topic(
-        self, topic: str
+            self, topic: str
     ) -> list[dict[str, int | str | list[str]]] | None:
         """
         Provide question for topics
