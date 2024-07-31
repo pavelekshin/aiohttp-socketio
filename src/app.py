@@ -5,9 +5,9 @@ import socketio
 from aiohttp import web
 from aiohttp.web_app import Application
 
-from src.apps.chat import Chat
-from src.apps.riddle import Riddle
-from src.apps.trivia import Trivia
+from src.apps.chat import ChatApp
+from src.apps.riddle import RiddleApp
+from src.apps.trivia import TriviaApp
 from src.routes import setup_routes
 
 
@@ -23,9 +23,9 @@ async def init_app():
     )
     # Attach SocketIO to webapp
     app["sio"].attach(app)
-    app["sio"].register_namespace(Riddle("/riddle"))
-    app["sio"].register_namespace(Chat("/chat"))
-    app["sio"].register_namespace(Trivia("/trivia"))
+    app["sio"].register_namespace(RiddleApp("/riddle"))
+    app["sio"].register_namespace(ChatApp("/chat"))
+    app["sio"].register_namespace(TriviaApp("/trivia"))
 
     # init app context
     app.cleanup_ctx.append(context)

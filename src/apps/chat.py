@@ -13,7 +13,7 @@ logger = logging.getLogger("chat")
 _ROOMS = ["sex", "drugs", "rock'n'roll"]
 
 
-class Chat(socketio.AsyncNamespace):
+class ChatApp(socketio.AsyncNamespace):
     async def on_connect(self, sid, environ):
         logger.info(f"Client {sid} connect to {self.__class__.__qualname__}")
         client_container.get_item(sid)

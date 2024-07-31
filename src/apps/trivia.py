@@ -1,10 +1,13 @@
 import logging
+from typing import Any
 
 import socketio
+from pydantic import ValidationError
 
 from src.config.config_folder import get_config_folder
 from src.helper import generate_game_uuid, send_status
-from src.modules.mod import ClientContainer, GameContainer, WaitingRoom
+from src.modules.mod import Client, ClientContainer, GameContainer, Trivia, WaitingRoom
+from src.schemas.schema import TriviaOnAnswer, TriviaOnJoinGame
 
 client_container = ClientContainer()
 game_container = GameContainer()
@@ -13,12 +16,12 @@ waiting_room = WaitingRoom()
 logger = logging.getLogger("trivia")
 
 
-class Trivia(socketio.AsyncNamespace):
-    async def on_connect(self, sid, environ):
+class TriviaApp(socketio.AsyncNamespace):
+    async def on_connect(self, sid: str, environ):
         logger.info(f"Client {sid} connect to {self.__class__.__qualname__}")
         await send_status(client_container, logger)
 
-    async def on_get_topics(self, sid, data):
+    async def on_get_topics(self, sid: str, data: dict[str, Any]):
         logger.info(f"Client {sid} send data: {data} on {self.__class__.__qualname__}")
         trivia = game_container.get_item("topics")
         topics_path = get_config_folder("trivia_topics.csv")
@@ -26,66 +29,79 @@ class Trivia(socketio.AsyncNamespace):
         topics = trivia.topics
         await self.emit("topics", to=sid, data=topics)
 
-    async def on_join_game(self, sid, data):
+    async def on_join_game(self, sid: str, data: dict[str, Any]):
         logger.info(f"Client {sid} send data: {data} on {self.__class__.__qualname__}")
-        topic = set_client_data_and_get_topic(data=data, sid=sid)
-        waiting_room.add_sid_to_topic(topic, sid)
-        if len(users_per_topic := waiting_room.get_sid_per_topic(topic)) == 2:
-            uid = generate_game_uuid()
-            trivia = game_container.get_item(uid)
-            for sid in users_per_topic:
-                trivia.add_user(sid)
-                client = client_container.get_item(sid)
-                client.game_uid = uid
-                await self.enter_room(sid, uid)
-            waiting_room.clear_topic(topic)
-            question_path = get_config_folder("trivia_questions.csv")
-            trivia.load_questions(question_path)
-            trivia.topic = topic
-            body = get_answer_body(trivia=trivia, topic=topic, uid=uid)
-            if trivia.remaining_question_on_topic(trivia.topic) > 0:
-                await self.emit("game", room=uid, data=body)
-                logger.info(
-                    f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
-                )
-            else:
-                players = trivia.get_players()
-                body = {"players": players}
-                await self.emit("no_question", room=uid, data=body)
-                logger.info(
-                    f'Send event "no_question" on {self.__class__.__qualname__} to {uid}, with body: {body}'
-                )
+        try:
+            user_msg = TriviaOnJoinGame(**data)
+        except ValidationError as err:
+            await self.emit("error", to=sid, data={"error": err.json()})
+            logger.error(f"Client {sid} message validation error!")
         else:
-            await self.emit(None, data={})
+            set_client_data(data=user_msg, sid=sid)
+            waiting_room.add_sid_to_topic(user_msg.topic_pk, sid)
+            if (
+                users_per_topic := waiting_room.get_sid_per_topic(user_msg.topic_pk)
+            ) and len(users_per_topic) == 2:
+                uid = generate_game_uuid()
+                trivia = game_container.get_item(uid)
+                for sid in users_per_topic:
+                    trivia.add_user(sid)
+                    client = client_container.get_item(sid)
+                    client.game_uid = uid
+                    await self.enter_room(sid, uid)
+                waiting_room.clear_topic(user_msg.topic_pk)
+                question_path = get_config_folder("trivia_questions.csv")
+                trivia.load_questions(question_path)
+                trivia.topic = user_msg.topic_pk
+                body = get_answer_body(trivia=trivia, topic=user_msg.topic_pk, uid=uid)
+                if trivia.remaining_question_on_topic(trivia.topic) > 0:
+                    await self.emit("game", room=uid, data=body)
+                    logger.info(
+                        f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
+                    )
+                else:
+                    players = trivia.get_players()
+                    body = {"players": players}
+                    await self.emit("no_question", room=uid, data=body)
+                    logger.info(
+                        f'Send event "no_question" on {self.__class__.__qualname__} to {uid}, with body: {body}'
+                    )
+            else:
+                await self.emit(None, data={})
 
-    async def on_answer(self, sid, data):
+    async def on_answer(self, sid: str, data: dict[str, Any]):
         logger.info(f"Client {sid} send data: {data} on {self.__class__.__qualname__}")
         client = client_container.get_item(sid)
         uid = client.game_uid
-        player_answer = data.get("index")
-        trivia = game_container.get_item(uid)
-        trivia.add_game_answer(player_answer, sid)
-        if len(answers := trivia.get_game_answers()) > 1:
-            check_answers(correct_answer=trivia.answer, answers=answers)
-            if (trivia.remaining_question_on_topic(trivia.topic)) > 0:
-                body = get_answer_body(trivia=trivia, topic=trivia.topic, uid=uid)
-                await self.emit("game", room=uid, data=body)
-                logger.info(
-                    f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
-                )
-            else:
-                players = trivia.get_players()
-                body = {"players": players}
-                await self.emit("over", room=uid, data=body)
-                logger.info(
-                    f'Send event "over" on {self.__class__.__qualname__} to {uid}, with body: {body}'
-                )
+        try:
+            user_msg = TriviaOnAnswer(**data)
+        except ValidationError as err:
+            await self.emit("error", to=sid, data={"error": err.json()})
+            logger.error(f"Client {sid} message validation error!")
+        else:
+            trivia = game_container.get_item(uid)
+            trivia.add_game_answer(user_msg.index, sid)
+            if len(answers := trivia.get_game_answers()) > 1:
+                check_answers(correct_answer=trivia.answer, answers=answers)
+                if (trivia.remaining_question_on_topic(trivia.topic)) > 0:
+                    body = get_answer_body(trivia=trivia, topic=trivia.topic, uid=uid)
+                    await self.emit("game", room=uid, data=body)
+                    logger.info(
+                        f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
+                    )
+                else:
+                    players = trivia.get_players()
+                    body = {"players": players}
+                    await self.emit("over", room=uid, data=body)
+                    logger.info(
+                        f'Send event "over" on {self.__class__.__qualname__} to {uid}, with body: {body}'
+                    )
 
-    async def on_release_queue(self, sid, data):
+    async def on_release_queue(self, sid: str, data: dict[str, Any]):
         logger.info(f"Client {sid} send data: {data} on {self.__class__.__qualname__}")
         waiting_room.remove_sid_from_waiting_room(sid)
 
-    async def on_disconnect(self, sid):
+    async def on_disconnect(self, sid: str):
         client = client_container.get_item(sid)
         logger.info(
             f"Client {sid} disconnected from {self.__class__.__qualname__},"
@@ -108,7 +124,9 @@ def check_answers(*, correct_answer=None, answers=None):
             game.score_increment()
 
 
-def get_answer_body(*, trivia=None, topic=None, uid=None):
+def get_answer_body(*, trivia: Trivia, topic: str | None, uid: str):
+    if not topic:
+        raise AttributeError("Topic not provided")
     players = trivia.get_players()
     count = trivia.remaining_question_on_topic(topic)
     trivia.get_question(topic)
@@ -122,7 +140,7 @@ def get_answer_body(*, trivia=None, topic=None, uid=None):
     }
 
 
-def run_clear_on_disconnect(client, sid):
+def run_clear_on_disconnect(client: Client, sid: str):
     waiting_room.remove_sid_from_waiting_room(sid)
     uid = client.game_uid
     game_container.del_item(uid)
@@ -131,14 +149,11 @@ def run_clear_on_disconnect(client, sid):
     del uid
 
 
-def set_client_data_and_get_topic(*, data=None, sid=None):
-    if not isinstance(data, dict):
-        raise ValueError("Data not provided!")
-    elif not sid:
+def set_client_data(*, data: TriviaOnJoinGame, sid: str) -> None:
+    if not data:
+        raise AttributeError("The user data not provided!")
+    if not sid:
         raise AttributeError("The user sid not provided!")
-    username = data.get("name")
     client = client_container.get_item(sid)
     client.create_game("trivia")
-    client.name = username
-    topic = data.get("topic_pk")
-    return topic
+    client.name = data.name

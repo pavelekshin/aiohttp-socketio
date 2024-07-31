@@ -11,7 +11,7 @@ client_container = ClientContainer()
 logger = logging.getLogger("riddle")
 
 
-class Riddle(socketio.AsyncNamespace):
+class RiddleApp(socketio.AsyncNamespace):
     async def on_connect(self, sid, environ):
         logger.info(f"Client {sid} connect to {self.__class__.__qualname__}")
         client = client_container.get_item(sid)

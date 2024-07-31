@@ -1,6 +1,8 @@
 import csv
+from abc import abstractmethod
 from collections import defaultdict
 from datetime import datetime
+from numbers import Number
 from typing import Any, Generator
 from weakref import WeakKeyDictionary
 from zoneinfo import ZoneInfo
@@ -95,27 +97,19 @@ class SingletonsConstructor(type):
 class Container(metaclass=SingletonsConstructor):
     objects: defaultdict
 
+    @abstractmethod
     def get_item(self, item):
-        """
-        Get object from container by their SID or UID depends on subclass
-        :param item: uid or game_id depends on child class
-        :return: object of container
-        """
-        return self.objects[item]
+        pass
 
+    @abstractmethod
     def del_item(self, item) -> None:
-        """
-        Delete object from container by their ID
-        :param item:  uid or game_id depends on child class
-        """
-        if item in self.objects.keys():
-            del self.objects[item]
+        pass
 
     def __len__(self):
         return len(self.objects)
 
     def __repr__(self):
-        return f"{type(self).__qualname__}(users={self.objects})"
+        return f"{type(self).__qualname__}(container={self.objects})"
 
 
 class ClientContainer(Container):
@@ -123,8 +117,24 @@ class ClientContainer(Container):
     Container, return information about Client by their SID
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.objects = defaultdict(Client)
+
+    def get_item(self, sid) -> Client:
+        """
+        Get client object from container by their SID
+        :param sid: client SID
+        :return: container
+        """
+        return self.objects[sid]
+
+    def del_item(self, sid) -> None:
+        """
+        Delete client object from container by their SID
+        :param sid: client SID
+        """
+        if sid in self.objects.keys():
+            del self.objects[sid]
 
 
 class GameContainer(Container):
@@ -132,8 +142,24 @@ class GameContainer(Container):
     Container, return information about Trivia instance by their UID
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.objects = defaultdict(Trivia)
+
+    def get_item(self, uid) -> "Trivia":
+        """
+        Get object from container by their UID
+        :param uid: Game UID
+        :return: Trivia container
+        """
+        return self.objects[uid]
+
+    def del_item(self, uid) -> None:
+        """
+        Delete object from container by their UID
+        :param uid: Game UID
+        """
+        if uid in self.objects.keys():
+            del self.objects[uid]
 
 
 class Game:
@@ -141,10 +167,10 @@ class Game:
     Class store game actions
     """
 
-    def __init__(self):
-        self._questions = None
-        self._question = None
-        self._answer = None
+    def __init__(self) -> None:
+        self._questions: Any = None
+        self._question: Any = None
+        self._answer: Any = None
         self._score = 0
 
     @property
@@ -203,12 +229,12 @@ class Trivia(Game):
 
     _topics: list[dict[str, Any]] = []
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._options = None
-        self._users = []
-        self._topic = None
-        self._players_answers = []
+        self._options: list[str] | None = None
+        self._users: list = []
+        self._topic: str | None = None
+        self._players_answers: list[dict] = []
 
     @staticmethod
     def _read_csv(path) -> Generator[dict[str, Any], None, None]:
@@ -233,7 +259,7 @@ class Trivia(Game):
         for i in Trivia._read_csv(path):
             topic = i.get("pk")
             waiting_room = WaitingRoom()
-            if waiting_room.get_sid_per_topic(str(topic)):
+            if topic and waiting_room.get_sid_per_topic(str(topic)):
                 i["has_players"] = True
             cls._topics.append(i)
 
@@ -242,7 +268,7 @@ class Trivia(Game):
         Load Trivia questions from provided path
         :param path: questions file
         """
-        if self._questions is None:
+        if not self._questions:
             self._questions = defaultdict(list)
         for i in Trivia._read_csv(path):
             self._questions[i["topic"]].append(
@@ -253,21 +279,22 @@ class Trivia(Game):
                 }
             )
 
-    def _questions_per_topic(self, topic: str | int) -> list[dict[str, int | str]]:
+    def _questions_per_topic(
+        self, topic: str
+    ) -> list[dict[str, int | str | list[str]]] | None:
         """
         Provide question for topics
         :param topic: topic number
         :return: List with questions
         """
-        t = str(topic)
-        return self._questions.get(t)
+        return self._questions.get(topic)
 
     @property
     def topics(self) -> list[dict[str, Any]]:
         return Trivia._topics
 
     @property
-    def options(self) -> list[str]:
+    def options(self) -> list[str] | None:
         return self._options
 
     @property
@@ -279,13 +306,12 @@ class Trivia(Game):
             self._users.append(sid)
 
     @property
-    def topic(self) -> str:
+    def topic(self) -> str | None:
         return self._topic
 
     @topic.setter
-    def topic(self, topic: str | int):
-        t = str(topic)
-        self._topic = t
+    def topic(self, topic: str | Number):
+        self._topic = str(topic)
 
     def get_players(self) -> list[dict]:
         """
@@ -301,7 +327,7 @@ class Trivia(Game):
                 players.append({"name": client.name, "score": trivia.score})
         return players
 
-    def get_question(self, topic: str | int) -> None:
+    def get_question(self, topic: str) -> None:
         """
         Assign next question/answer/options per topics
         :param topic: topic number
@@ -310,7 +336,9 @@ class Trivia(Game):
         if data:
             current = data.pop()
             indx = current.get("answer")
-            self._answer = int(indx) if indx else None
+            self._answer = (
+                int(indx) if isinstance(indx, int) or isinstance(indx, str) else None
+            )
             self._options = current.get("options")
             self._question = current.get("text")
         else:
@@ -318,15 +346,17 @@ class Trivia(Game):
             self._options = None
             self._question = None
 
-    def remaining_question_on_topic(self, topic: str | int) -> int:
+    def remaining_question_on_topic(self, topic: str | None) -> int:
         """
         Evaluate remaining question per topics
         :param topic: topic number
         :return: count of remaining question
         """
-        t = str(topic)
-        questions = self._questions.get(t)
-        return len(questions) if questions else 0
+        if not topic:
+            raise AttributeError("Topic not provided")
+        elif self._questions and (q := self._questions.get(topic)):
+            return len(q)
+        return 0
 
     def add_game_answer(self, index: int, sid: str) -> None:
         """
@@ -369,49 +399,49 @@ class WaitingRoom(metaclass=SingletonsConstructor):
     def __init__(self) -> None:
         self._waiting_room: defaultdict[str, list[str]] = defaultdict(list)
 
-    def add_sid_to_topic(self, topic: str | int, sid: str) -> None:
+    def add_sid_to_topic(self, topic: str, sid: str) -> None:
         """
-        Add user SID to topic
-        :param topic: topic id
-        :param sid: user sid
+        Add client SID to topic
+        :param topic: topic_id
+        :param sid: client sid
         :return:
         """
-        if sid not in (topic_wr := self._waiting_room[str(topic)]):
+        if sid not in (topic_wr := self._waiting_room[topic]):
             topic_wr.append(sid)
 
-    def remove_sid_from_topic(self, topic: str | int) -> None:
+    def remove_sid_from_topic(self, topic: str) -> None:
         """
-        Remove user SIDs from topic
-        :param topic: topic
+        Remove client SID from topic
+        :param topic: topic_id
         :return:
         """
-        t = str(topic)
-        if t in self._waiting_room.keys():
-            if user_per_topic := self.get_sid_per_topic(t):
+        if topic in self._waiting_room.keys():
+            if user_per_topic := self.get_sid_per_topic(topic):
                 for sid in user_per_topic:
-                    self._waiting_room[t].remove(sid)
+                    self._waiting_room[topic].remove(sid)
         else:
             raise ValueError("Topic not found!")
 
-    def clear_topic(self, topic: str | int) -> None:
+    def clear_topic(self, topic: str) -> None:
         """
         Clear topic
         :param topic: topic_id
         :return:
         """
-        t = str(topic)
-        if t in self._waiting_room.keys():
-            del self._waiting_room[t]
+        if topic in self._waiting_room.keys():
+            del self._waiting_room[topic]
         else:
             raise ValueError("Topic not found!")
 
-    def get_sid_per_topic(self, topic: str | int) -> list[str] | None:
+    def get_sid_per_topic(self, topic: str) -> list[str] | None:
         """
         Get users sid for topic
         :param topic: topic_id
         :return: return list of sid per topic
         """
-        return self._waiting_room.get(str(topic))
+        if not topic:
+            raise AttributeError("Topic not provided!")
+        return self._waiting_room.get(topic)
 
     def remove_sid_from_waiting_room(self, sid: str) -> None:
         """

@@ -25,7 +25,8 @@
             results: {},
             disconnected: {},
             showover: {},
-            no_question: {}
+            no_question: {},
+            showerror: {}
         }
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -108,7 +109,7 @@
 
         app.on("over", null, (data) => {
             console.log(data)
-<!--            app.run("feedback", app.store.game.answer)-->
+            app.run("feedback", app.store.game.answer)
             setTimeout( () => { app.store.over = data; app.go("showover") }, 3000)
 
             app.store = {
@@ -121,7 +122,7 @@
 
         })
 
-       app.on("disconnect", "#disconnect")
+        app.on("disconnect", "#disconnect")
 
 
         app.on("no_question", null, (data) => {
@@ -133,11 +134,13 @@
                         }
 
             console.log(app.store)
-
-
         })
 
-       app.on("disconnect", "#disconnect")
+        app.on("error", "#showerror", (data) => {
+           app.store.error = data.error
+        })
+
+        app.on("disconnect", "#disconnect")
 
 
     })
@@ -227,7 +230,14 @@
 </template>
 
 <template id="no_question">
+    <span class="back-link block mb" onclick="app.run('back')">назад</span>
     <p>По данной теме нет вопросов</p>
+    <button class="tappable block" onclick="app.run('back')">Вернуться к выбору топиков</button>
+</template>
+
+<template id="showerror">
+    <span class="back-link block mb" onclick="app.run('back')">назад</span>
+    <div class="limit"><p>Ошибка: {{error}}</p></div>
     <button class="tappable block" onclick="app.run('back')">Вернуться к выбору топиков</button>
 </template>
 
