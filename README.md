@@ -18,31 +18,38 @@ All three game glue together with custom classes.
 well-structured code:
 
 ```bash
-├── main.py 
-├── app.py                                    - app factory
-├── helper.py                                 - helper functions
-├── routes.py                                 - routes
-├── apps                                      - apps
-│   ├── chat.py
-│   ├── riddle.py
-│   └── trivia.py
-├── config                                    - config dir
-│   ├── config_folder.py
-│   ├── logging.yaml
-│   ├── trivia_questions.csv
-│   └── trivia_topics.csv
-├── modules                                   - custom class 
-│   └── modules.py
-├── schemas                                   - pydantic schema
-│   └── schema.py
-├── static                                    - static site content
-│   ├── js
-│   └── style
-├── templates                                 - site templates
-│   ├── chat
-│   ├── riddle
-│   └── trivia
-└── tests                                     - pytest
+.
+├── README.md
+├── images
+├── requremenets.txt
+├── ruff.toml
+├── src                                             -- src app
+│   ├── helper.py
+│   ├── main.py
+│   ├── app.py
+│   ├── routes.py                                   -- routes
+│   ├── apps                                        -- apps
+│   │   ├── chat.py
+│   │   ├── riddle.py
+│   │   └── trivia.py
+│   ├── config
+│   │   ├── config_folder.py
+│   │   ├── logging.yaml
+│   │   ├── trivia_questions.csv
+│   │   └── trivia_topics.csv
+│   ├── modules
+│   │   └── mod.py                                  -- modules
+│   ├── schemas                                     -- pydantic shema
+│   │   └── schema.py
+│   ├── static                            
+│   │   ├── js
+│   │   └── style
+│   └── templates                                   -- site templates
+└── tests                                           -- pytest
+   ├── conftest.py
+   ├── pytest.ini
+   └── test_client.py
+
 ```
 
 ### Chat application:
