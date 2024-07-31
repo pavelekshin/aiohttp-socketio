@@ -78,7 +78,7 @@ class SingletonsConstructor(type):
     Singletons metaclass
     """
 
-    _instances = WeakKeyDictionary()
+    _instances: WeakKeyDictionary = WeakKeyDictionary()
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
@@ -93,7 +93,7 @@ class SingletonsConstructor(type):
 
 
 class Container(metaclass=SingletonsConstructor):
-    objects = None
+    objects: defaultdict
 
     def get_item(self, item):
         """
@@ -175,7 +175,7 @@ class Riddle(Game):
     Class store riddle game actions
     """
 
-    _QUESTIONS = [
+    _QUESTIONS: list[tuple[str, str]] = [
         ("Висит груша нельзя скушать?", "лампочка"),
         ("Зимой и летом одним цветом", "Ёлка"),
     ]
@@ -201,7 +201,7 @@ class Trivia(Game):
     Class store trivia game actions
     """
 
-    _topics = []
+    _topics: list[dict[str, Any]] = []
 
     def __init__(self):
         super().__init__()
@@ -233,7 +233,7 @@ class Trivia(Game):
         for i in Trivia._read_csv(path):
             topic = i.get("pk")
             waiting_room = WaitingRoom()
-            if waiting_room.get_sid_per_topic(topic):
+            if waiting_room.get_sid_per_topic(str(topic)):
                 i["has_players"] = True
             cls._topics.append(i)
 
@@ -253,7 +253,7 @@ class Trivia(Game):
                 }
             )
 
-    def _questions_per_topic(self, topic: str | int) -> list[dict]:
+    def _questions_per_topic(self, topic: str | int) -> list[dict[str, int | str]]:
         """
         Provide question for topics
         :param topic: topic number
@@ -263,7 +263,7 @@ class Trivia(Game):
         return self._questions.get(t)
 
     @property
-    def topics(self) -> list[str]:
+    def topics(self) -> list[dict[str, Any]]:
         return Trivia._topics
 
     @property
@@ -283,7 +283,7 @@ class Trivia(Game):
         return self._topic
 
     @topic.setter
-    def topic(self, topic):
+    def topic(self, topic: str | int):
         t = str(topic)
         self._topic = t
 
@@ -309,8 +309,8 @@ class Trivia(Game):
         data = self._questions_per_topic(topic)
         if data:
             current = data.pop()
-            indx = int(current.get("answer"))
-            self._answer = indx
+            indx = current.get("answer")
+            self._answer = int(indx) if indx else None
             self._options = current.get("options")
             self._question = current.get("text")
         else:
@@ -318,7 +318,7 @@ class Trivia(Game):
             self._options = None
             self._question = None
 
-    def remaining_question_on_topic(self, topic) -> int:
+    def remaining_question_on_topic(self, topic: str | int) -> int:
         """
         Evaluate remaining question per topics
         :param topic: topic number
@@ -328,7 +328,7 @@ class Trivia(Game):
         questions = self._questions.get(t)
         return len(questions) if questions else 0
 
-    def add_game_answer(self, index, sid) -> None:
+    def add_game_answer(self, index: int, sid: str) -> None:
         """
         Add player answer
         :param index: number of player answer
@@ -366,37 +366,61 @@ class WaitingRoom(metaclass=SingletonsConstructor):
     Class realise waiting room
     """
 
-    def __init__(self):
-        self._waiting_room = defaultdict(list)
+    def __init__(self) -> None:
+        self._waiting_room: defaultdict[str, list[str]] = defaultdict(list)
 
-    def add_sid_to_topic(self, topic, sid):
-        t = str(topic)
-        if sid not in (topic := self._waiting_room[t]):
-            topic.append(sid)
+    def add_sid_to_topic(self, topic: str | int, sid: str) -> None:
+        """
+        Add user SID to topic
+        :param topic: topic id
+        :param sid: user sid
+        :return:
+        """
+        if sid not in (topic_wr := self._waiting_room[str(topic)]):
+            topic_wr.append(sid)
 
-    def remove_sid_from_topic(self, topic):
+    def remove_sid_from_topic(self, topic: str | int) -> None:
+        """
+        Remove user SIDs from topic
+        :param topic: topic
+        :return:
+        """
         t = str(topic)
         if t in self._waiting_room.keys():
-            user_per_topic = self.get_sid_per_topic(topic)
-            for sid in user_per_topic:
-                self._waiting_room[t].remove(sid)
+            if user_per_topic := self.get_sid_per_topic(t):
+                for sid in user_per_topic:
+                    self._waiting_room[t].remove(sid)
         else:
             raise ValueError("Topic not found!")
 
-    def clear_topic(self, topic):
+    def clear_topic(self, topic: str | int) -> None:
+        """
+        Clear topic
+        :param topic: topic_id
+        :return:
+        """
         t = str(topic)
         if t in self._waiting_room.keys():
             del self._waiting_room[t]
         else:
             raise ValueError("Topic not found!")
 
-    def get_sid_per_topic(self, topic):
-        t = str(topic)
-        return self._waiting_room.get(t)
+    def get_sid_per_topic(self, topic: str | int) -> list[str] | None:
+        """
+        Get users sid for topic
+        :param topic: topic_id
+        :return: return list of sid per topic
+        """
+        return self._waiting_room.get(str(topic))
 
-    def remove_sid_from_waiting_room(self, sid):
+    def remove_sid_from_waiting_room(self, sid: str) -> None:
+        """
+        Remove user SID from waiting room
+        :param sid: user SID
+        :return:
+        """
         for topic, sids in self._waiting_room.items():
-            if sid in (players := self._waiting_room.get(topic)):
+            if (players := self._waiting_room.get(topic)) and sid in players:
                 players.remove(sid)
 
     def __repr__(self):

@@ -1,7 +1,10 @@
 import uuid
+from logging import Logger
+
+from src.modules.mod import ClientContainer
 
 
-async def send_status(client_container, logger):
+async def send_status(client_container: ClientContainer, logger: Logger):
     match len(client_container):
         case 0:
             status = "Server is empty"

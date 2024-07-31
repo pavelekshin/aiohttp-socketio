@@ -2,9 +2,9 @@ import logging
 
 import socketio
 
-from config.config_folder import get_config_folder
-from helper import generate_game_uuid, send_status
-from modules.modules import ClientContainer, GameContainer, WaitingRoom
+from src.config.config_folder import get_config_folder
+from src.helper import generate_game_uuid, send_status
+from src.modules.mod import ClientContainer, GameContainer, WaitingRoom
 
 client_container = ClientContainer()
 game_container = GameContainer()

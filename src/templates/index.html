@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Socket.io main site</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+    <link rel="stylesheet" type="text/css" href="/src/static/style/trivia/style.css"/>
+</head>
+<script>
+    function redirect(pathname) {
+        const url = window.location.origin + pathname
+        location.replace(url);
+    }
+</script>
+<body>
+<div class="container">
+    <section class="screen active card" id="app">
+        <h1 class="center">Страница выбора приложения</h1>
+        <p class="center">Выберите одно из приложений для продолжения.</p>
+        <div class="center">
+            <div class="alert mb" onclick="redirect('/riddle')"><span class="name">Riddle</span></div>
+            <div class="alert mb" onclick="redirect('/trivia')"><span class="name">Trivia</span></div>
+            <div class="alert mb" onclick="redirect('/chat')"><span class="name">Chat</span></div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

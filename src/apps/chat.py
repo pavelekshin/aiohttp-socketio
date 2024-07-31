@@ -3,9 +3,9 @@ import logging
 import socketio
 from pydantic import ValidationError
 
-from helper import send_status
-from modules.modules import ClientContainer
-from schemas.schema import OnChatJoin
+from src.helper import send_status
+from src.modules.mod import ClientContainer
+from src.schemas.schema import OnChatJoin
 
 client_container = ClientContainer()
 

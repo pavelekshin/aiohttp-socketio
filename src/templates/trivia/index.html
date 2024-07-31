@@ -6,8 +6,8 @@
     <title>Socket.io trivia</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-    <script src="/static/js/socketio.js"></script>
-    <link rel="stylesheet" type="text/css" href="/static/style/trivia/style.css"/>
+    <script src="/src/static/js/socketio.js"></script>
+    <link rel="stylesheet" type="text/css" href="/src/static/style/trivia/style.css"/>
 
     <script>
         var store = {
@@ -29,8 +29,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-
-
 
         app = new socketio({
           store: store,
@@ -213,7 +211,6 @@
 
 </template>
 
-
 <template id="showover">
     <p>Игра завершена</p>
     <p class="alert">
@@ -228,7 +225,6 @@
     </p>
     <button class="tappable block" onclick="app.run('back')">Вернуться к выбору топиков</button>
 </template>
-
 
 <template id="no_question">
     <p>По данной теме нет вопросов</p>

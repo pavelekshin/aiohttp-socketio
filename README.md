@@ -9,6 +9,7 @@ All three game glue together with custom classes.
 - pydantic
 - logging
 - pytest-asyncio
+- mypy type checked
 - custom class for business logic
 - lightweight SocketIO js client
 - site templates with Handlebars

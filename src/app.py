@@ -3,11 +3,12 @@ import logging.config
 
 import socketio
 from aiohttp import web
+from aiohttp.web_app import Application
 
-from apps.chat import Chat
-from apps.riddle import Riddle
-from apps.trivia import Trivia
-from routes import setup_routes
+from src.apps.chat import Chat
+from src.apps.riddle import Riddle
+from src.apps.trivia import Trivia
+from src.routes import setup_routes
 
 
 async def init_app():
@@ -33,6 +34,6 @@ async def init_app():
     return app
 
 
-async def context(app):
+async def context(app: Application):
     yield
     await app["sio"].shutdown()

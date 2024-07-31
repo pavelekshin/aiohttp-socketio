@@ -6,11 +6,11 @@ import socketio
 from aiohttp import web
 from socketio import AsyncClient
 
-from app import init_app
-from apps.trivia import game_container, get_answer_body
-from config.config_folder import get_config_folder
-from helper import generate_game_uuid
-from modules.modules import Riddle
+from src.app import init_app
+from src.apps.trivia import game_container, get_answer_body
+from src.config.config_folder import get_config_folder
+from src.helper import generate_game_uuid
+from src.modules.mod import Riddle
 
 EXPECTED_CHAT_DATA = []
 EXPECTED_RIDDLE_DATA = []
