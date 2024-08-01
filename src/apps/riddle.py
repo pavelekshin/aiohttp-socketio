@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from src.helper import send_status
 from src.modules.mod import ClientContainer
-from src.schemas.schema import RiddleAnswerOut
+from src.schemas.schema import RiddleOnAnswerOut
 
 client_container = ClientContainer()
 logger = logging.getLogger("riddle")
@@ -59,7 +59,7 @@ class RiddleApp(socketio.AsyncNamespace):
         if is_correct := text.lower() == answer.lower():
             riddle.score_increment()
         try:
-            msg = RiddleAnswerOut(
+            msg = RiddleOnAnswerOut(
                 **{
                     "riddle": question,
                     "is_correct": is_correct,

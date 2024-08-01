@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from src.helper import send_status
 from src.modules.mod import ClientContainer
-from src.schemas.schema import OnChatJoin
+from src.schemas.schema import ChatOnJoin
 
 client_container = ClientContainer()
 
@@ -34,7 +34,7 @@ class ChatApp(socketio.AsyncNamespace):
 
     async def on_join(self, sid: str, data: dict[str, Any]):
         try:
-            msg = OnChatJoin(**data)
+            msg = ChatOnJoin(**data)
         except ValidationError as err:
             await self.emit("error", to=sid, data={"error": err.json()})
             logger.error(f"Client {sid} validation error! Error: {err.json()}")

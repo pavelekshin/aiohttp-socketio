@@ -9,7 +9,7 @@ from pydantic import (
 )
 
 
-class OnChatJoin(BaseModel):
+class ChatOnJoin(BaseModel):
     """
     Validation "join" event chat messages
     """
@@ -18,7 +18,7 @@ class OnChatJoin(BaseModel):
     room: str = Field(str)
 
 
-class RiddleAnswerOut(BaseModel):
+class RiddleOnAnswerOut(BaseModel):
     """
     Serializer for "answer" event riddle messages
     """
@@ -41,3 +41,16 @@ class TriviaOnJoinGame(BaseModel):
 class TriviaOnAnswer(BaseModel):
     index: int = Field(ge=0)
     game_uid: UUID4
+
+
+class TriviaCurrentQuestion(BaseModel):
+    text: str
+    options: list[str]
+
+
+class TriviaOnAnswerOut(BaseModel):
+    uid: UUID4
+    question_count: int
+    players: list[dict]
+    answer: int
+    current_question: TriviaCurrentQuestion

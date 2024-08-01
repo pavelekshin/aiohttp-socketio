@@ -53,9 +53,7 @@ class TriviaApp(socketio.AsyncNamespace):
                 question_path = get_config_folder("trivia_questions.csv")
                 trivia.load_questions(question_path)
                 trivia.topic = user_msg.topic_pk
-                body = create_answer_body(
-                    trivia=trivia, topic=user_msg.topic_pk, uid=uid
-                )
+                body = create_answer_body(trivia=trivia, uid=uid)
                 if trivia.remaining_question_on_topic(trivia.topic) > 0:
                     await self.emit("game", room=uid, data=body)
                     logger.info(
@@ -76,19 +74,17 @@ class TriviaApp(socketio.AsyncNamespace):
         client = client_container.get_item(sid)
         uid = client.game_uid
         try:
-            user_msg = TriviaOnAnswer(**data)
+            msg = TriviaOnAnswer(**data)
         except ValidationError as err:
             await self.emit("error", to=sid, data={"error": err.json()})
             logger.error(f"Client {sid} message validation error!")
         else:
             trivia = game_container.get_item(uid)
-            trivia.add_game_answer(user_msg.index, sid)
+            trivia.add_game_answer(msg.index, sid)
             if len(answers := trivia.get_game_answers()) > 1:
                 check_answers(correct_answer=int(trivia.answer), answers=answers)
                 if (trivia.remaining_question_on_topic(trivia.topic)) > 0:
-                    body = create_answer_body(
-                        trivia=trivia, topic=trivia.topic, uid=uid
-                    )
+                    body = create_answer_body(trivia=trivia, uid=uid)
                     await self.emit("game", room=uid, data=body)
                     logger.info(
                         f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
@@ -128,10 +124,11 @@ def check_answers(*, correct_answer: int, answers: list[dict[str, Any]]):
             game.score_increment()
 
 
-def create_answer_body(*, trivia: Trivia, topic: str | None, uid: str):
-    if not topic:
-        raise AttributeError("Topic not provided")
+def create_answer_body(*, trivia: Trivia, uid: str):
     players = trivia.get_players()
+    topic = trivia.topic
+    if not topic:
+        raise AttributeError("Topic for game not found!")
     count = trivia.remaining_question_on_topic(topic)
     trivia.get_question(topic)
     trivia.clear_game_answers()
@@ -145,6 +142,16 @@ def create_answer_body(*, trivia: Trivia, topic: str | None, uid: str):
             "options": trivia.options,
         },
     }
+    # return TriviaOnAnswerOut(**{
+    #     "uid": uid,
+    #     "question_count": count,
+    #     "players": players,
+    #     "answer": trivia.answer,
+    #     "current_question": {
+    #         "text": trivia.question,
+    #         "options": trivia.options,
+    #     },
+    # })
 
 
 def run_clear_on_disconnect(client: Client, sid: str):
