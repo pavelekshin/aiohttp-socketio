@@ -19,9 +19,9 @@ from tests.conftest import (
         ("connected", None, "connected"),
         ("get_rooms", {}, ["sex", "drugs", "rock'n'roll"]),
         (
-            "join",
-            {"name": "test_client", "room": "lobby"},
-            {"text": "welcome to lobby"},
+                "join",
+                {"name": "test_client", "room": "lobby"},
+                {"text": "welcome to lobby"},
         ),
     ],
     ids=idtype,
@@ -32,7 +32,7 @@ async def test_chat(conn: AsyncClient, event, data, expected):
     assert expected in EXPECTED_CHAT_DATA
 
 
-def riddle():
+def riddle_game():
     riddle = Riddle()
     riddle.get_question()
     return riddle
@@ -42,31 +42,32 @@ def riddle():
     "event, data, expected",
     [
         ("connected", None, "connected"),
-        ("next", {}, {"text": riddle().question}),
+        ("next", {}, {"text": riddle_game().question}),
         (
-            "answer",
-            {"text": riddle().answer},
-            {
-                "riddle": riddle().question,
-                "is_correct": "true",
-                "answer": riddle().answer,
-            },
+                "answer",
+                {"text": riddle_game().answer},
+                {
+                    "riddle": riddle_game().question,
+                    "is_correct": "true",
+                    "answer": riddle_game().answer,
+                },
         ),
         (
-            "answer",
-            {"text": "WRONG"},
-            {
-                "riddle": riddle().question,
-                "is_correct": "false",
-                "answer": riddle().answer,
-            },
+                "answer",
+                {"text": "WRONG"},
+                {
+                    "riddle": riddle_game().question,
+                    "is_correct": "false",
+                    "answer": riddle_game().answer,
+                },
         ),
         ("score", {}, {"value": 1}),
-        ("recreate", {}, {"text": riddle().question}),
+        ("recreate", {}, {"text": riddle_game().question}),
     ],
     ids=idtype,
 )
 async def test_riddle(conn: AsyncClient, event, data, expected):
+    print(data)
     await conn.emit(event, data=data, namespace="/riddle")
     await conn.sleep(0.5)
     assert expected in EXPECTED_RIDDLE_DATA
@@ -86,7 +87,7 @@ def trivia_game():
     question_path = get_config_folder("trivia_questions.csv")
     trivia.load_questions(question_path)
     trivia.topic = topic
-    response = create_answer_body(trivia=trivia, topic=topic, uid=generate_game_uuid())
+    response = create_answer_body(trivia=trivia, uid=generate_game_uuid())
     EXPECTED_TRIVIA_DATA.append(response)
     return response
 
