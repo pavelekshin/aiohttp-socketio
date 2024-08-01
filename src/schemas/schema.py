@@ -34,6 +34,7 @@ class TriviaOnJoinGame(BaseModel):
     """
     Trivia join body In
     """
+
     topic_pk: Annotated[
         str,
         PlainValidator(lambda i: str(i)),
@@ -45,6 +46,7 @@ class TriviaOnAnswer(BaseModel):
     """
     Trivia client answer body In
     """
+
     index: int = Field(ge=0)
     game_uid: UUID4
 
@@ -58,6 +60,7 @@ class TriviaOnAnswerOut(BaseModel):
     """
     Trivia service answer response Out
     """
+
     uid: str
     question_count: int
     players: list[dict]

@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from src.config.config_folder import get_config_folder
 from src.helper import generate_game_uuid, send_status
 from src.modules.mod import Client, ClientContainer, GameContainer, Trivia, WaitingRoom
-from src.schemas.schema import TriviaOnAnswer, TriviaOnJoinGame, TriviaOnAnswerOut
+from src.schemas.schema import TriviaOnAnswer, TriviaOnAnswerOut, TriviaOnJoinGame
 
 client_container = ClientContainer()
 game_container = GameContainer()
@@ -40,7 +40,7 @@ class TriviaApp(socketio.AsyncNamespace):
             set_client_data(data=user_msg, sid=sid)
             waiting_room.add_sid_to_topic(user_msg.topic_pk, sid)
             if (
-                    users_per_topic := waiting_room.get_sid_per_topic(user_msg.topic_pk)
+                users_per_topic := waiting_room.get_sid_per_topic(user_msg.topic_pk)
             ) and len(users_per_topic) == 2:
                 uid = generate_game_uuid()
                 trivia = game_container.get_item(uid)
@@ -132,16 +132,18 @@ def create_answer_body(*, trivia: Trivia, uid: str):
     trivia.get_question(topic)
     trivia.clear_game_answers()
     try:
-        msg = TriviaOnAnswerOut(**{
-            "uid": uid,
-            "question_count": count,
-            "players": trivia.get_players(),
-            "answer": trivia.answer,
-            "current_question": {
-                "text": trivia.question,
-                "options": trivia.options,
-            },
-        })
+        msg = TriviaOnAnswerOut(
+            **{
+                "uid": uid,
+                "question_count": count,
+                "players": trivia.get_players(),
+                "answer": trivia.answer,
+                "current_question": {
+                    "text": trivia.question,
+                    "options": trivia.options,
+                },
+            }
+        )
     except ValidationError as err:
         logger.error(f"Serialization error {err}")
     else:
