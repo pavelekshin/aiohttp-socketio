@@ -71,5 +71,5 @@ class RiddleApp(socketio.AsyncNamespace):
             logger.error(f"Error occurred {err.json()}, sending to {sid}")
         else:
             await self.emit("result", to=sid, data=msg.model_dump())
-            logger.info(f"Send data {msg.model_dump_json()} to {sid}")
+            logger.info(f"Send data {msg.model_dump()} to {sid}")
             await self.emit("score", to=sid, data={"value": riddle.score})

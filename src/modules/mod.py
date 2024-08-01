@@ -169,7 +169,7 @@ class Game:
         return self._question
 
     @property
-    def answer(self) -> int:
+    def answer(self):
         return self._answer
 
     @property
@@ -201,9 +201,9 @@ class Riddle(Game):
         super().__init__()
 
     def get_question(self):
-        if self._questions is None:
+        if not self._questions:
             self._questions = list(Riddle._QUESTIONS)
-        elif self._questions:
+        if self._questions:
             self._question, self._answer = self._questions.pop()
         else:
             self._answer = None
