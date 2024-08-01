@@ -57,17 +57,17 @@ class ChatApp(socketio.AsyncNamespace):
 
     async def on_leave(self, sid: str, data: dict[str, Any]):
         client = client_container.get_item(sid)
-        room = client.room
-        username = client.name
-        await self.close_room(room=room)
-        logger.info(f"Client {sid}, with name: {username} left the room: {room}")
+        await self.close_room(room=client.room)
+        logger.info(f"Client {sid}, with name: {client.name} left the room: {client.room}")
         del client.room
 
     async def on_send_message(self, sid: str, data: dict[str, Any]):
         client = client_container.get_item(sid)
-        username = client.name
-        room = client.room
         text = data.get("text")
-        await self.emit("message", data={"text": text, "author": username}, room=room)
-        logger.info(f"Client {sid} send message {data} on room: {room} ")
-        client.add_message(room, data)
+        msg = {
+            "text": text,
+            "author": client.name,
+        }
+        await self.emit("message", data=msg, room=client.room)
+        logger.info(f"Client {sid} send message {msg} on room: {client.room} ")
+        client.add_message(client.room, msg)
