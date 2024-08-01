@@ -21,7 +21,7 @@ class Messages:
         if len(msg.strip()) > 0:
             self._messages.append({"text": msg, "author": author})
 
-    def get_messages(self):
+    def get_messages(self) -> list[dict[str, Any]]:
         return self._messages
 
     def __repr__(self):
@@ -42,12 +42,12 @@ class Client:
         self._end = None
         self._messages = defaultdict(Messages)
 
-    def get_messages(self, room):
+    def get_messages(self, room: str):
         if not room:
             raise AttributeError("The room doesn't pass!")
         return self._messages[room].get_messages()
 
-    def add_message(self, room, data):
+    def add_message(self, room: str, data: dict[str, Any]):
         if not room or not data:
             raise AttributeError("The required attribute doesn't pass!")
         self._messages[room].add_message(data)
@@ -96,7 +96,7 @@ class SingletonsConstructor(type):
 class Container(metaclass=SingletonsConstructor):
     objects: defaultdict
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.objects)
 
     def __repr__(self):
@@ -169,11 +169,11 @@ class Game:
         return self._question
 
     @property
-    def answer(self):
+    def answer(self) -> int:
         return self._answer
 
     @property
-    def score(self):
+    def score(self) -> int:
         return self._score
 
     def score_increment(self):

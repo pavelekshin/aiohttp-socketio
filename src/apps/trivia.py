@@ -53,7 +53,9 @@ class TriviaApp(socketio.AsyncNamespace):
                 question_path = get_config_folder("trivia_questions.csv")
                 trivia.load_questions(question_path)
                 trivia.topic = user_msg.topic_pk
-                body = get_answer_body(trivia=trivia, topic=user_msg.topic_pk, uid=uid)
+                body = create_answer_body(
+                    trivia=trivia, topic=user_msg.topic_pk, uid=uid
+                )
                 if trivia.remaining_question_on_topic(trivia.topic) > 0:
                     await self.emit("game", room=uid, data=body)
                     logger.info(
@@ -82,9 +84,11 @@ class TriviaApp(socketio.AsyncNamespace):
             trivia = game_container.get_item(uid)
             trivia.add_game_answer(user_msg.index, sid)
             if len(answers := trivia.get_game_answers()) > 1:
-                check_answers(correct_answer=trivia.answer, answers=answers)
+                check_answers(correct_answer=int(trivia.answer), answers=answers)
                 if (trivia.remaining_question_on_topic(trivia.topic)) > 0:
-                    body = get_answer_body(trivia=trivia, topic=trivia.topic, uid=uid)
+                    body = create_answer_body(
+                        trivia=trivia, topic=trivia.topic, uid=uid
+                    )
                     await self.emit("game", room=uid, data=body)
                     logger.info(
                         f'Send event "game" on {self.__class__.__qualname__} to {uid}, with body: {body}'
@@ -111,7 +115,7 @@ class TriviaApp(socketio.AsyncNamespace):
         await send_status(client_container, logger)
 
 
-def check_answers(*, correct_answer=None, answers=None):
+def check_answers(*, correct_answer: int, answers: list[dict[str, Any]]):
     if not isinstance(answers, list):
         raise ValueError("Answers not provided!")
     elif correct_answer is None:
@@ -124,7 +128,7 @@ def check_answers(*, correct_answer=None, answers=None):
             game.score_increment()
 
 
-def get_answer_body(*, trivia: Trivia, topic: str | None, uid: str):
+def create_answer_body(*, trivia: Trivia, topic: str | None, uid: str):
     if not topic:
         raise AttributeError("Topic not provided")
     players = trivia.get_players()
@@ -136,7 +140,10 @@ def get_answer_body(*, trivia: Trivia, topic: str | None, uid: str):
         "question_count": count,
         "players": players,
         "answer": trivia.answer,
-        "current_question": {"text": trivia.question, "options": trivia.options},
+        "current_question": {
+            "text": trivia.question,
+            "options": trivia.options,
+        },
     }
 
 

@@ -1,24 +1,25 @@
 import logging
+from typing import Any
 
 import socketio
 from pydantic import ValidationError
 
 from src.helper import send_status
 from src.modules.mod import ClientContainer
-from src.schemas.schema import OnRiddleAnswer
+from src.schemas.schema import RiddleAnswerOut
 
 client_container = ClientContainer()
 logger = logging.getLogger("riddle")
 
 
 class RiddleApp(socketio.AsyncNamespace):
-    async def on_connect(self, sid, environ):
+    async def on_connect(self, sid: str, environ):
         logger.info(f"Client {sid} connect to {self.__class__.__qualname__}")
         client = client_container.get_item(sid)
         client.create_game("riddle")
         await send_status(client_container, logger)
 
-    async def on_disconnect(self, sid):
+    async def on_disconnect(self, sid: str):
         client = client_container.get_item(sid)
         client_container.del_item(sid)
         logger.info(
@@ -27,7 +28,7 @@ class RiddleApp(socketio.AsyncNamespace):
         )
         await send_status(client_container, logger)
 
-    async def on_next(self, sid, data):
+    async def on_next(self, sid: str, data: dict[str, Any]):
         client = client_container.get_item(sid)
         riddle = client.game
         riddle.get_question()
@@ -39,7 +40,7 @@ class RiddleApp(socketio.AsyncNamespace):
             await self.emit("over", to=sid, data={})
             logger.info(f"Send over to {sid}")
 
-    async def on_recreate(self, sid, data):
+    async def on_recreate(self, sid: str, data: dict[str, Any]):
         client = client_container.get_item(sid)
         riddle = client.game
         riddle.recreate()
@@ -48,23 +49,27 @@ class RiddleApp(socketio.AsyncNamespace):
         await self.emit("riddle", to=sid, data={"text": question})
         logger.info(f"Send question: {question} to {sid}")
 
-    async def on_answer(self, sid, data):
+    async def on_answer(self, sid: str, data: dict[str, Any]):
         logger.info(f"Client {sid} send data: {data}")
         text = str(data.get("text")).strip()
         client = client_container.get_item(sid)
         riddle = client.game
         answer = riddle.answer
         question = riddle.question
-        if is_correct := text.lower() in answer.lower():
+        if is_correct := text.lower() == answer.lower():
             riddle.score_increment()
         try:
-            data = {"riddle": question, "is_correct": is_correct, "answer": answer}
-            msg = OnRiddleAnswer(**data)
+            msg = RiddleAnswerOut(
+                **{
+                    "riddle": question,
+                    "is_correct": is_correct,
+                    "answer": answer,
+                }
+            )
         except ValidationError as err:
-            errors = err.json()
-            await self.emit("errors", to=sid, data=errors)
-            logger.error(f"Error occurred {errors}, sending to {sid}")
-            return
-        await self.emit("result", to=sid, data=msg.model_dump())
-        logger.info(f"Send data {msg.model_dump_json()} to {sid}")
-        await self.emit("score", to=sid, data={"value": riddle.score})
+            await self.emit("errors", to=sid, data=err.json())
+            logger.error(f"Error occurred {err.json()}, sending to {sid}")
+        else:
+            await self.emit("result", to=sid, data=msg.model_dump())
+            logger.info(f"Send data {msg.model_dump_json()} to {sid}")
+            await self.emit("score", to=sid, data={"value": riddle.score})

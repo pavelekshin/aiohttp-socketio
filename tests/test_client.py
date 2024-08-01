@@ -1,11 +1,16 @@
 import pytest
 from socketio import AsyncClient
 
-from src.apps.trivia import game_container, get_answer_body
+from src.apps.trivia import create_answer_body, game_container
 from src.config.config_folder import get_config_folder
 from src.helper import generate_game_uuid
 from src.modules.mod import Riddle
-from tests.conftest import idtype, EXPECTED_CHAT_DATA, EXPECTED_RIDDLE_DATA, EXPECTED_TRIVIA_DATA
+from tests.conftest import (
+    EXPECTED_CHAT_DATA,
+    EXPECTED_RIDDLE_DATA,
+    EXPECTED_TRIVIA_DATA,
+    idtype,
+)
 
 
 @pytest.mark.parametrize(
@@ -14,9 +19,9 @@ from tests.conftest import idtype, EXPECTED_CHAT_DATA, EXPECTED_RIDDLE_DATA, EXP
         ("connected", None, "connected"),
         ("get_rooms", {}, ["sex", "drugs", "rock'n'roll"]),
         (
-                "join",
-                {"name": "test_client", "room": "lobby"},
-                {"text": "welcome to lobby"},
+            "join",
+            {"name": "test_client", "room": "lobby"},
+            {"text": "welcome to lobby"},
         ),
     ],
     ids=idtype,
@@ -39,22 +44,22 @@ def riddle():
         ("connected", None, "connected"),
         ("next", {}, {"text": riddle().question}),
         (
-                "answer",
-                {"text": riddle().answer},
-                {
-                    "riddle": riddle().question,
-                    "is_correct": "true",
-                    "answer": riddle().answer,
-                },
+            "answer",
+            {"text": riddle().answer},
+            {
+                "riddle": riddle().question,
+                "is_correct": "true",
+                "answer": riddle().answer,
+            },
         ),
         (
-                "answer",
-                {"text": "WRONG"},
-                {
-                    "riddle": riddle().question,
-                    "is_correct": "false",
-                    "answer": riddle().answer,
-                },
+            "answer",
+            {"text": "WRONG"},
+            {
+                "riddle": riddle().question,
+                "is_correct": "false",
+                "answer": riddle().answer,
+            },
         ),
         ("score", {}, {"value": 1}),
         ("recreate", {}, {"text": riddle().question}),
@@ -76,12 +81,12 @@ def trivia_topics():
 
 
 def trivia_game():
-    topic = '5'
+    topic = "5"
     trivia = game_container.get_item("topics")
     question_path = get_config_folder("trivia_questions.csv")
     trivia.load_questions(question_path)
     trivia.topic = topic
-    response = get_answer_body(trivia=trivia, topic=topic, uid=generate_game_uuid())
+    response = create_answer_body(trivia=trivia, topic=topic, uid=generate_game_uuid())
     EXPECTED_TRIVIA_DATA.append(response)
     return response
 
@@ -91,7 +96,7 @@ def trivia_game():
     [
         ("connected", None, "connected"),
         ("get_topics", {}, trivia_topics()),
-        ("join_game", {"topic_pk": '5', "name": "Player_name"}, trivia_game()),
+        ("join_game", {"topic_pk": "5", "name": "Player_name"}, trivia_game()),
         # TODO: complete tests
     ],
     ids=idtype,

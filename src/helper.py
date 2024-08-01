@@ -17,5 +17,5 @@ async def send_status(client_container: ClientContainer, logger: Logger):
     logger.info(status)
 
 
-def generate_game_uuid():
+def generate_game_uuid() -> str:
     return str(uuid.uuid4())

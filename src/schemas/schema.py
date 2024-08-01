@@ -4,8 +4,8 @@ from pydantic import (
     UUID4,
     BaseModel,
     Field,
+    PlainSerializer,
     PlainValidator,
-    field_serializer,
 )
 
 
@@ -18,24 +18,21 @@ class OnChatJoin(BaseModel):
     room: str = Field(str)
 
 
-class OnRiddleAnswer(BaseModel):
+class RiddleAnswerOut(BaseModel):
     """
     Serializer for "answer" event riddle messages
     """
 
     riddle: str = Field(str)
-    is_correct: bool
+    is_correct: Annotated[
+        bool, PlainSerializer(lambda item: str(item).lower(), return_type=str)
+    ]
     answer: str = Field(str)
-
-    @field_serializer("is_correct", return_type=str)
-    def serialize_bool(self, is_correct: bool) -> str:
-        return str(is_correct).lower()
 
 
 class TriviaOnJoinGame(BaseModel):
     topic_pk: Annotated[
         str,
-        Field(ge=0),
         PlainValidator(lambda item: str(item)),
     ]
     name: Annotated[str, Field(min_length=3)]
