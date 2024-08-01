@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from src.config.config_folder import get_config_folder
 from src.helper import generate_game_uuid, send_status
 from src.modules.mod import Client, ClientContainer, GameContainer, Trivia, WaitingRoom
-from src.schemas.schema import TriviaOnAnswer, TriviaOnJoinGame
+from src.schemas.schema import TriviaOnAnswer, TriviaOnJoinGame, TriviaOnAnswerOut
 
 client_container = ClientContainer()
 game_container = GameContainer()
@@ -40,7 +40,7 @@ class TriviaApp(socketio.AsyncNamespace):
             set_client_data(data=user_msg, sid=sid)
             waiting_room.add_sid_to_topic(user_msg.topic_pk, sid)
             if (
-                users_per_topic := waiting_room.get_sid_per_topic(user_msg.topic_pk)
+                    users_per_topic := waiting_room.get_sid_per_topic(user_msg.topic_pk)
             ) and len(users_per_topic) == 2:
                 uid = generate_game_uuid()
                 trivia = game_container.get_item(uid)
@@ -125,33 +125,27 @@ def check_answers(*, correct_answer: int, answers: list[dict[str, Any]]):
 
 
 def create_answer_body(*, trivia: Trivia, uid: str):
-    players = trivia.get_players()
     topic = trivia.topic
     if not topic:
         raise AttributeError("Topic for game not found!")
     count = trivia.remaining_question_on_topic(topic)
     trivia.get_question(topic)
     trivia.clear_game_answers()
-    return {
-        "uid": uid,
-        "question_count": count,
-        "players": players,
-        "answer": trivia.answer,
-        "current_question": {
-            "text": trivia.question,
-            "options": trivia.options,
-        },
-    }
-    # return TriviaOnAnswerOut(**{
-    #     "uid": uid,
-    #     "question_count": count,
-    #     "players": players,
-    #     "answer": trivia.answer,
-    #     "current_question": {
-    #         "text": trivia.question,
-    #         "options": trivia.options,
-    #     },
-    # })
+    try:
+        msg = TriviaOnAnswerOut(**{
+            "uid": uid,
+            "question_count": count,
+            "players": trivia.get_players(),
+            "answer": trivia.answer,
+            "current_question": {
+                "text": trivia.question,
+                "options": trivia.options,
+            },
+        })
+    except ValidationError as err:
+        logger.error(f"Serialization error {err}")
+    else:
+        return msg.model_dump()
 
 
 def run_clear_on_disconnect(client: Client, sid: str):

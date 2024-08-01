@@ -345,8 +345,8 @@ class Trivia(Game):
         """
         if not topic:
             raise AttributeError("Topic not provided")
-        elif self._questions and (q := self._questions.get(topic)):
-            return len(q)
+        elif self._questions and (question := self._questions.get(topic)):
+            return len(question)
         return 0
 
     def add_game_answer(self, index: int, sid: str) -> None:

@@ -25,20 +25,26 @@ class RiddleOnAnswerOut(BaseModel):
 
     riddle: str = Field(str)
     is_correct: Annotated[
-        bool, PlainSerializer(lambda item: str(item).lower(), return_type=str)
+        bool, PlainSerializer(lambda i: str(i).lower(), return_type=str)
     ]
     answer: str = Field(str)
 
 
 class TriviaOnJoinGame(BaseModel):
+    """
+    Trivia join body In
+    """
     topic_pk: Annotated[
         str,
-        PlainValidator(lambda item: str(item)),
+        PlainValidator(lambda i: str(i)),
     ]
     name: Annotated[str, Field(min_length=3)]
 
 
 class TriviaOnAnswer(BaseModel):
+    """
+    Trivia client answer body In
+    """
     index: int = Field(ge=0)
     game_uid: UUID4
 
@@ -49,7 +55,10 @@ class TriviaCurrentQuestion(BaseModel):
 
 
 class TriviaOnAnswerOut(BaseModel):
-    uid: UUID4
+    """
+    Trivia service answer response Out
+    """
+    uid: str
     question_count: int
     players: list[dict]
     answer: int
