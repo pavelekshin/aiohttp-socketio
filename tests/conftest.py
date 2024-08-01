@@ -7,7 +7,6 @@ from aiohttp import web
 from pytest_asyncio import is_async_test
 
 from src.app import init_app
-from src.modules.mod import Riddle
 
 
 # https://pytest-asyncio.readthedocs.io/en/latest/how-to-guides/run_session_tests_in_same_loop.html
