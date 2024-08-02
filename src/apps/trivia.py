@@ -40,7 +40,7 @@ class TriviaApp(socketio.AsyncNamespace):
             set_client_data(data=user_msg, sid=sid)
             waiting_room.add_sid_to_topic(user_msg.topic_pk, sid)
             if (
-                users_per_topic := waiting_room.get_sid_per_topic(user_msg.topic_pk)
+                    users_per_topic := waiting_room.get_sid_per_topic(user_msg.topic_pk)
             ) and len(users_per_topic) == 2:
                 uid = generate_game_uuid()
                 trivia = game_container.get_item(uid)
@@ -124,7 +124,7 @@ def check_answers(*, correct_answer: int, answers: list[dict[str, Any]]):
             game.score_increment()
 
 
-def create_answer_body(*, trivia: Trivia, uid: str):
+def create_answer_body(*, trivia: Trivia, uid: str | None):
     topic = trivia.topic
     if not topic:
         raise AttributeError("Topic for game not found!")

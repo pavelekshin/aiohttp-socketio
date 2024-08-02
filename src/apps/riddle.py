@@ -5,7 +5,7 @@ import socketio
 from pydantic import ValidationError
 
 from src.helper import send_status
-from src.modules.mod import ClientContainer, Client
+from src.modules.mod import ClientContainer, Client, Riddle
 from src.schemas.schema import RiddleOnAnswerOut
 
 client_container = ClientContainer()

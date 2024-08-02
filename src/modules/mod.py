@@ -12,8 +12,8 @@ class Messages:
     Class store author messages
     """
 
-    def __init__(self):
-        self._messages = []
+    def __init__(self) -> None:
+        self._messages: list = []
 
     def add_message(self, message):
         msg = message.get("text")
@@ -24,7 +24,7 @@ class Messages:
     def get_messages(self) -> list[dict[str, Any]]:
         return self._messages
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__qualname__}(messages={self._messages})"
 
 
@@ -33,32 +33,32 @@ class Client:
     Client class, store all information about single client
     """
 
-    def __init__(self):
-        self.game = None
-        self.game_uid = None
-        self.name = None
-        self.room = None
-        self._start = datetime.now()
-        self._end = None
-        self._messages = defaultdict(Messages)
+    def __init__(self) -> None:
+        self.game: Any = None
+        self.game_uid: str | None = None
+        self.name: str | None = None
+        self.room: str | None = None
+        self._start: datetime = datetime.now()
+        self._end: datetime | None = None
+        self._messages: defaultdict[str, Messages] = defaultdict(Messages)
 
-    def get_messages(self, room: str):
+    def get_messages(self, room: str | None) -> list[dict[str, Any]]:
         if not room:
             raise AttributeError("The room doesn't pass!")
         return self._messages[room].get_messages()
 
-    def add_message(self, room: str, data: dict[str, Any]):
+    def add_message(self, room: str | None, data: dict[str, Any]):
         if not room or not data:
             raise AttributeError("The required attribute doesn't pass!")
         self._messages[room].add_message(data)
 
-    def connection_time(self):
+    def connection_time(self) -> str:
         self._end = datetime.now()
         duration = self._end - self._start
         dt = datetime.fromtimestamp(duration.total_seconds(), tz=ZoneInfo("UTC"))
         return dt.strftime("%H:%M:%S")
 
-    def create_game(self, name=None):
+    def create_game(self, name=None) -> None:
         if name is None:
             raise AttributeError("The name of game didn't pass at attribute!")
         match name.lower():
@@ -69,7 +69,7 @@ class Client:
             case _:
                 raise ValueError(f"The game {name}, not found!")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__qualname__}(name={self.name}, room={self.room}\
             ,messages={self._messages}, start={self._start}, end={self._end}, game={self.game}, game_uid={self.game_uid})"
 
@@ -89,7 +89,7 @@ class SingletonsConstructor(type):
             instance = cls._instances[cls]
         return instance
 
-    def __repr__(cls):
+    def __repr__(cls) -> str:
         return f"{type(cls).__qualname__}(_instances={cls._instances})"
 
 
@@ -99,7 +99,7 @@ class Container(metaclass=SingletonsConstructor):
     def __len__(self) -> int:
         return len(self.objects)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__qualname__}(container={self.objects})"
 
 
@@ -169,7 +169,7 @@ class Game:
         return self._question
 
     @property
-    def answer(self):
+    def answer(self) -> Any:
         return self._answer
 
     @property
@@ -182,7 +182,7 @@ class Game:
     def score_decrement(self):
         self._score -= 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__name__}(questions={self._questions},answer={self._answer},question={self._question},\
         score={self._score})"
 
@@ -197,7 +197,7 @@ class Riddle(Game):
         ("Зимой и летом одним цветом", "Ёлка"),
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def get_question(self):
@@ -271,7 +271,7 @@ class Trivia(Game):
             )
 
     def _questions_per_topic(
-        self, topic: str
+            self, topic: str
     ) -> list[dict[str, int | str | list[str]]] | None:
         """
         Provide question for topics
@@ -375,7 +375,7 @@ class Trivia(Game):
         """
         return self._players_answers
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"{super().__repr__()},topics={self._topics},options={self._options},users={self._users},"
             f"topic={self._topic},players_answers={self._players_answers}"
@@ -444,5 +444,5 @@ class WaitingRoom(metaclass=SingletonsConstructor):
             if (players := self._waiting_room.get(topic)) and sid in players:
                 players.remove(sid)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__qualname__}(waiting_room={self._waiting_room})"
